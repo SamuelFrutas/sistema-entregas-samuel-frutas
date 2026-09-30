@@ -92,9 +92,9 @@ class MainActivity : Activity() {
         endereco.isEnabled=false
         addGap(v); v.addView(label("Pagamento inicial",14f,muted))
         val payment=RadioGroup(this)
-        val rbAd=RadioButton(this).apply{text="Pago adiantado";setTextColor(white)}
-        val rbNp=RadioButton(this).apply{text="Não pago";setTextColor(white)}
-        val rbNi=RadioButton(this).apply{text="Não informado";setTextColor(white)}
+        val rbAd=RadioButton(this).apply{text="Pago adiantado";setTextColor(white);id=1001}
+        val rbNp=RadioButton(this).apply{text="Não pago";setTextColor(white);id=1002}
+        val rbNi=RadioButton(this).apply{text="Não informado";setTextColor(white);id=1003}
         payment.addView(rbAd);payment.addView(rbNp);payment.addView(rbNi);payment.check(rbNi.id);v.addView(payment)
         addGap(v)
         v.addView(label("Valor da compra",14f,muted))
@@ -108,17 +108,22 @@ class MainActivity : Activity() {
                 else -> { valor.isEnabled=true; valorInfo.text="Não informado: valor da compra é opcional." }
             }
         }
-        rbAd.id = 1001; rbNp.id=1002; rbNi.id=1003
         payment.setOnCheckedChangeListener { _, _ -> updateValueRule() }; updateValueRule()
         addGap(v)
         v.addView(primary("CONTINUAR"){ 
-            val addressOk=if(semEndereco.isChecked) endereco.text.toString().trim().isNotEmpty()
-            else predio.text.toString().trim().isNotEmpty() && bloco.text.toString().trim().isNotEmpty() && v.findViewById<EditText>(0)==null
-            val valueOk=rbNp.isChecked && valor.text.toString().trim().isEmpty().not()
-            val valueOkFinal=if(rbNp.isChecked) valor.text.toString().trim().isNotEmpty() else true
-            if(!addressOk){Toast.makeText(this,"Preencha o local da entrega.",Toast.LENGTH_SHORT).show();return@primary}
-            if(rbNp.isChecked && !valueOkFinal){Toast.makeText(this,"Para 'Não pago', informe o valor da compra.",Toast.LENGTH_SHORT).show();return@primary}
-            showFinalPayment()
+            val addressOk = if (semEndereco.isChecked) {
+                endereco.text.toString().trim().isNotEmpty()
+            } else {
+                predio.text.toString().trim().isNotEmpty() &&
+                bloco.text.toString().trim().isNotEmpty() &&
+                apto.text.toString().trim().isNotEmpty()
+            }
+            val valueOk = !rbNp.isChecked || valor.text.toString().trim().isNotEmpty()
+            when {
+                !addressOk -> Toast.makeText(this,"Preencha prédio, bloco e apartamento ou marque 'Entrega sem endereço'.",Toast.LENGTH_SHORT).show()
+                !valueOk -> Toast.makeText(this,"Para 'Não pago', informe o valor da compra.",Toast.LENGTH_SHORT).show()
+                else -> showFinalPayment()
+            }
         })
         addGap(v); v.addView(button("← VOLTAR"){showHome()}); finish(v)
     }

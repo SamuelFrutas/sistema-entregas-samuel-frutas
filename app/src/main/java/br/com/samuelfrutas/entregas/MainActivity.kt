@@ -27,6 +27,8 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        db=EntregaDbHelper(this)
+        deliveries.addAll(db.loadDeliveries(today))
         showHome()
     }
 
@@ -145,6 +147,7 @@ class MainActivity : Activity() {
         v.addView(card("PAGAMENTO INICIAL",d.initialPayment+(if(d.purchaseValue.isNotBlank())"\\nValor: "+d.purchaseValue else "")));addGap(v)
         v.addView(primary("SALVAR COMO PENDENTE"){
             deliveries.add(d)
+            db.saveDelivery(d)
             current=null
             showPending()
         })
@@ -190,6 +193,7 @@ class MainActivity : Activity() {
         v.addView(card("CAIXINHA / OBSERVAÇÃO",(if(d.tip.isBlank())"R$ 0,00" else d.tip)+"\\n"+(if(d.observation.isBlank())"Sem observação" else d.observation)));addGap(v)
         v.addView(primary("CONFIRMAR COMO REALIZADA"){
             d.completed=true
+            db.saveDelivery(d)
             selectedDelivery=null
             showCompleted()
         })

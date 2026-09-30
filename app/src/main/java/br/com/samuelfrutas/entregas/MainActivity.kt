@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.text.InputType
 import android.view.Gravity
 import android.widget.*
+import br.com.samuelfrutas.entregas.data.EntregaDbHelper
 
 class MainActivity : Activity() {
     private val bg = Color.rgb(16, 20, 24)
@@ -14,8 +15,9 @@ class MainActivity : Activity() {
     private val white = Color.WHITE
     private val muted = Color.rgb(180, 188, 194)
     private lateinit var root: LinearLayout
-    private data class Delivery(val id:String, val day:String, val location:String, val initialPayment:String, val purchaseValue:String, var finalPayment:String?=null, var paymentMethod:String?=null, var tip:String="", var observation:String="", var completed:Boolean=false)
+    data class Delivery(val id:String, val day:String, val location:String, val initialPayment:String, val purchaseValue:String, var finalPayment:String?=null, var paymentMethod:String?=null, var tip:String="", var observation:String="", var completed:Boolean=false)
     private val deliveries=mutableListOf<Delivery>()
+    private lateinit var db: EntregaDbHelper
     private var selectedDelivery: Delivery?=null
     private var current: Delivery?=null
     private val today:String get()=java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())

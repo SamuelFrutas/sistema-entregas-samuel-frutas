@@ -17,6 +17,7 @@ class MainActivity : Activity() {
     private data class Delivery(val id:String, val day:String, val location:String, val initialPayment:String, val purchaseValue:String, var finalPayment:String?=null, var paymentMethod:String?=null, var tip:String="", var observation:String="", var completed:Boolean=false)
     private val deliveries=mutableListOf<Delivery>()
     private var selectedDelivery: Delivery?=null
+    private var current: Delivery?=null
     private val today:String get()=java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -134,49 +135,73 @@ class MainActivity : Activity() {
 
     private fun showFinalPayment() {
         val selected=selectedDelivery ?: return showPending()
-        val v=base("Registrar entrega","Resultado final"); addGap(v)
-        v.addView(label("Resultado da entrega",14f,muted))
+        val v=base("Registrar entrega","Resultado final");addGap(v)
         val result=RadioGroup(this)
         val pago=RadioButton(this).apply{text="Pago";setTextColor(white);id=2001}
         val nao=RadioButton(this).apply{text="Não pago";setTextColor(white);id=2002}
         result.addView(pago);result.addView(nao);result.check(pago.id);v.addView(result)
-        addGap(v); v.addView(label("Forma de pagamento",14f,muted))
+        v.addView(label("Forma de pagamento",14f,muted))
         val forma=RadioGroup(this)
         val dinheiro=RadioButton(this).apply{text="Dinheiro";setTextColor(white);id=3001}
         val cartao=RadioButton(this).apply{text="Cartão";setTextColor(white);id=3002}
         forma.addView(dinheiro);forma.addView(cartao);forma.check(dinheiro.id);v.addView(forma)
         val caixinha=edit("Caixinha (R$ 0,00)")
         val obs=edit("Observação")
-        addGap(v);v.addView(label("Caixinha",14f,muted));v.addView(caixinha)
+        v.addView(label("Caixinha",14f,muted));v.addView(caixinha)
         v.addView(label("Observação",14f,muted));v.addView(obs)
-        result.setOnCheckedChangeListener { _, id -> forma.isEnabled=id==pago.id; dinheiro.isEnabled=id==pago.id;cartao.isEnabled=id==pago.id;if(id!=pago.id) forma.clearCheck() }
+        result.setOnCheckedChangeListener{_,id->
+            val paid=id==pago.id
+            forma.isEnabled=paid;dinheiro.isEnabled=paid;cartao.isEnabled=paid
+            if(!paid) forma.clearCheck()
+        }
         addGap(v);v.addView(primary("CONTINUAR"){
-            val d=selectedDelivery ?: return@primary
-            d.finalPayment=if(pago.isChecked)"Pago" else "Não pago"
-            d.paymentMethod=if(pago.isChecked) if(dinheiro.isChecked)"Dinheiro" else "Cartão" else null
-            d.tip=caixinha.text.toString().trim()
-            d.observation=obs.text.toString().trim()
+            selected.finalPayment=if(pago.isChecked)"Pago" else "Não pago"
+            selected.paymentMethod=if(pago.isChecked){if(dinheiro.isChecked)"Dinheiro" else "Cartão"}else null
+            selected.tip=caixinha.text.toString().trim()
+            selected.observation=obs.text.toString().trim()
             showConfirmation()
-        });addGap(v);v.addView(button("← VOLTAR"){showNewDelivery()});finish(v)
+        })
+        addGap(v);v.addView(button("← VOLTAR"){showPending()});finish(v)
     }
 
     private fun showConfirmation(){
-        val d=selectedDelivery ?: return showPending()val v=base("Confirmar entrega","Confira o resultado antes de concluir");addGap(v);v.addView(card("CONFIRMAÇÃO","Resultado, forma de pagamento, caixinha e observação serão salvos na entrega."));addGap(v);v.addView(primary("CONFIRMAR COMO REALIZADA"){
+        val d=selectedDelivery ?: return showPending()
+        val v=base("Confirmar entrega","Confira o resultado antes de concluir");addGap(v)
+        v.addView(card("LOCAL",d.location));addGap(v)
+        v.addView(card("RESULTADO",(d.finalPayment ?: "")+(if(d.paymentMethod!=null)"\\nForma: "+d.paymentMethod else "")));addGap(v)
+        v.addView(card("CAIXINHA / OBSERVAÇÃO",(if(d.tip.isBlank())"R$ 0,00" else d.tip)+"\\n"+(if(d.observation.isBlank())"Sem observação" else d.observation)));addGap(v)
+        v.addView(primary("CONFIRMAR COMO REALIZADA"){
             d.completed=true
             selectedDelivery=null
             showCompleted()
-        });addGap(v);v.addView(button("← VOLTAR"){showFinalPayment()});finish(v)}
+        })
+        addGap(v);v.addView(button("← VOLTAR"){showFinalPayment()});finish(v)
+    }
+
     private fun showPending(){
-        val list=deliveries.filter{it.day==today&&!it.completed}val v=base("Entregas pendentes","Ainda não realizadas");addGap(v);if(list.isEmpty()) v.addView(card("Nenhuma entrega pendente","Todas as entregas de hoje foram realizadas."))
+        val list=deliveries.filter{it.day==today&&!it.completed}
+        val v=base("Entregas pendentes","Hoje");addGap(v)
+        if(list.isEmpty()) v.addView(card("Nenhuma entrega pendente","Todas as entregas de hoje foram realizadas."))
         else list.forEach{d->
-            v.addView(card("ENTREGA PENDENTE",d.location+"\nPagamento inicial: "+d.initialPayment))
-            gap(v,8)
+            v.addView(card("ENTREGA PENDENTE",d.location+"\\nPagamento inicial: "+d.initialPayment))
+            addGap(v,8)
             v.addView(primary("REALIZAR ENTREGA"){selectedDelivery=d;showFinalPayment()})
-            gap(v)
-        };addGap(v);v.addView(primary("+ NOVA ENTREGA"){showNewDelivery()});addGap(v);v.addView(button("← INÍCIO"){showHome()});finish(v)}
+            addGap(v)
+        }
+        addGap(v);v.addView(primary("+ NOVA ENTREGA"){showNewDelivery()});addGap(v);v.addView(button("← INÍCIO"){showHome()});finish(v)
+    }
+
     private fun showCompleted(){
-        val list=deliveries.filter{it.day==today&&it.completed}val v=base("Entregas realizadas","Concluídas hoje");addGap(v);if(list.isEmpty()) v.addView(card("Nenhuma entrega realizada","As entregas concluídas aparecerão aqui."))
-        else list.forEach{d->v.addView(card("REALIZADA",d.location+"\nResultado: "+(d.finalPayment ?: "")+(if(d.paymentMethod!=null)" • "+d.paymentMethod else "")));gap(v,8)};addGap(v);v.addView(button("← INÍCIO"){showHome()});finish(v)}
+        val list=deliveries.filter{it.day==today&&it.completed}
+        val v=base("Entregas realizadas","Hoje");addGap(v)
+        if(list.isEmpty()) v.addView(card("Nenhuma entrega realizada","As entregas concluídas aparecerão aqui."))
+        else list.forEach{d->
+            v.addView(card("REALIZADA",d.location+"\\nResultado: "+(d.finalPayment ?: "")+(if(d.paymentMethod!=null)" • "+d.paymentMethod else "")))
+            addGap(v,8)
+        }
+        addGap(v);v.addView(button("← INÍCIO"){showHome()});finish(v)
+    }
+
     private fun showSync(){val v=base("Sincronização","Operação offline-first");addGap(v);v.addView(card("STATUS","Sincronização real será implementada nos blocos 5 e 6."));addGap(v);v.addView(card("SEGURANÇA","Registros locais não serão removidos antes da confirmação."));addGap(v);v.addView(button("← INÍCIO"){showHome()});finish(v)}
     private fun showMenu(){val v=base("Menu","Sistema de Entregas");addGap(v);v.addView(button("ENTREGAS PENDENTES"){showPending()});addGap(v);v.addView(button("ENTREGAS REALIZADAS"){showCompleted()});addGap(v);v.addView(button("SINCRONIZAÇÃO"){showSync()});addGap(v);v.addView(button("← INÍCIO"){showHome()});finish(v)}
 }

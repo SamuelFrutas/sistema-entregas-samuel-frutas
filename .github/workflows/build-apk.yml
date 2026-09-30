@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,9 +23,6 @@ jobs:
 
       - name: Install Android SDK 35
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
-
-      - name: Check Gradle
-        run: gradle --version
 
       - name: Build debug APK
         run: gradle --no-daemon assembleDebug

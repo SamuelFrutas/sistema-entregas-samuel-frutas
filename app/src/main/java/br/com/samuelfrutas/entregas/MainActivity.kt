@@ -18,7 +18,25 @@ class MainActivity : Activity() {
     private val white = Color.WHITE
     private val muted = Color.rgb(180, 188, 194)
     private lateinit var root: LinearLayout
-    data class Delivery(val id:String, val day:String, val location:String, val initialPayment:String, val purchaseValue:String, var finalPayment:String?=null, var paymentMethod:String?=null, var tip:String="", var observation:String="", var completed:Boolean=false)
+    data class Delivery(
+        val id:String,
+        val day:String,
+        val predio:String="",
+        val bloco:String="",
+        val apartamento:String="",
+        val semEndereco:Boolean=false,
+        val enderecoReferencia:String="",
+        val initialPayment:String,
+        val purchaseValue:String,
+        var finalPayment:String?=null,
+        var paymentMethod:String?=null,
+        var tip:String="",
+        var observation:String="",
+        var completed:Boolean=false
+    ) {
+        val location:String
+            get() = if (semEndereco) enderecoReferencia else "Prédio $predio • Bloco $bloco • Apto $apartamento"
+    }
     private val deliveries=mutableListOf<Delivery>()
     private lateinit var db: EntregaDbHelper
     private var selectedDelivery: Delivery?=null
@@ -134,7 +152,17 @@ class MainActivity : Activity() {
             when {
                 !addressOk -> Toast.makeText(this,"Preencha prédio, bloco e apartamento ou marque 'Entrega sem endereço'.",Toast.LENGTH_SHORT).show()
                 !valueOk -> Toast.makeText(this,"Para 'Não pago', informe o valor da compra.",Toast.LENGTH_SHORT).show()
-                else -> {\n                    val local=if(semEndereco.isChecked) endereco.text.toString().trim() else "Prédio "+predio.text+" • Bloco "+bloco.text+" • Apto "+apto.text\n                    current=Delivery(java.util.UUID.randomUUID().toString(),today,local,when(payment.checkedRadioButtonId){rbAd.id->"Pago adiantado";rbNp.id->"Não pago";else->"Não informado"},valor.text.toString().trim())\n                    showReview()\n                }
+                else -> {\n                    val local=if(semEndereco.isChecked) endereco.text.toString().trim() else "Prédio "+predio.text+" • Bloco "+bloco.text+" • Apto "+apto.text\n                    current=Delivery(
+                        id=java.util.UUID.randomUUID().toString(),
+                        day=today,
+                        predio=predio.text.toString().trim(),
+                        bloco=bloco.text.toString().trim(),
+                        apartamento=apto.text.toString().trim(),
+                        semEndereco=semEndereco.isChecked,
+                        enderecoReferencia=endereco.text.toString().trim(),
+                        initialPayment=when(payment.checkedRadioButtonId){rbAd.id->"Pago adiantado";rbNp.id->"Não pago";else->"Não informado"},
+                        purchaseValue=valor.text.toString().trim()
+                    )\n                    showReview()\n                }
             }
         })
         addGap(v); v.addView(button("← VOLTAR"){showHome()}); finish(v)

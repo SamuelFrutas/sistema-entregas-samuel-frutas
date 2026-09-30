@@ -11,3 +11,6 @@ Projeto independente do sistema de entregas.
 
 ## Estado
 Base inicial reconstruída do zero.
+
+
+Base reconstruída para validação de build.

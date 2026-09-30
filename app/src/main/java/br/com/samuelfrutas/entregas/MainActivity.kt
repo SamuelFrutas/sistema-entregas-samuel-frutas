@@ -86,7 +86,7 @@ class MainActivity : Activity() {
         v.addView(label("Bloco",14f,muted)); val bloco=edit("Número inicialmente",true); v.addView(bloco)
         var blocoLetras=false
         v.addView(button("ABC — permitir letras no bloco"){ blocoLetras=!blocoLetras; bloco.inputType=if(blocoLetras) InputType.TYPE_CLASS_TEXT else InputType.TYPE_CLASS_NUMBER; bloco.hint=if(blocoLetras) "Ex.: E ou E13" else "Somente números" })
-        v.addView(label("Apartamento",14f,muted)); v.addView(edit("Somente números",true))
+        v.addView(label("Apartamento",14f,muted)); val apto=edit("Somente números",true); v.addView(apto)
         addGap(v); val semEndereco=CheckBox(this).apply{text="Entrega sem endereço";setTextColor(white)}; v.addView(semEndereco)
         val endereco=edit("Endereço / referência")
         v.addView(endereco)
@@ -127,10 +127,23 @@ class MainActivity : Activity() {
             when {
                 !addressOk -> Toast.makeText(this,"Preencha prédio, bloco e apartamento ou marque 'Entrega sem endereço'.",Toast.LENGTH_SHORT).show()
                 !valueOk -> Toast.makeText(this,"Para 'Não pago', informe o valor da compra.",Toast.LENGTH_SHORT).show()
-                else -> showFinalPayment()
+                else -> {\n                    val local=if(semEndereco.isChecked) endereco.text.toString().trim() else "Prédio "+predio.text+" • Bloco "+bloco.text+" • Apto "+apto.text\n                    current=Delivery(java.util.UUID.randomUUID().toString(),today,local,when(payment.checkedRadioButtonId){rbAd.id->"Pago adiantado";rbNp.id->"Não pago";else->"Não informado"},valor.text.toString().trim())\n                    showReview()\n                }
             }
         })
         addGap(v); v.addView(button("← VOLTAR"){showHome()}); finish(v)
+    }
+
+    private fun showReview(){
+        val d=current ?: return showHome()
+        val v=base("Revisar entrega","Confira antes de salvar");addGap(v)
+        v.addView(card("LOCAL",d.location));addGap(v)
+        v.addView(card("PAGAMENTO INICIAL",d.initialPayment+(if(d.purchaseValue.isNotBlank())"\\nValor: "+d.purchaseValue else "")));addGap(v)
+        v.addView(primary("SALVAR COMO PENDENTE"){
+            deliveries.add(d)
+            current=null
+            showPending()
+        })
+        addGap(v);v.addView(button("← VOLTAR"){showNewDelivery()});finish(v)
     }
 
     private fun showFinalPayment() {

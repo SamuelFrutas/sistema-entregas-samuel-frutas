@@ -152,7 +152,8 @@ class MainActivity : Activity() {
             when {
                 !addressOk -> Toast.makeText(this,"Preencha prédio, bloco e apartamento ou marque 'Entrega sem endereço'.",Toast.LENGTH_SHORT).show()
                 !valueOk -> Toast.makeText(this,"Para 'Não pago', informe o valor da compra.",Toast.LENGTH_SHORT).show()
-                else -> {\n                    val local=if(semEndereco.isChecked) endereco.text.toString().trim() else "Prédio "+predio.text+" • Bloco "+bloco.text+" • Apto "+apto.text\n                    current=Delivery(
+                else -> {
+                    current=Delivery(
                         id=java.util.UUID.randomUUID().toString(),
                         day=today,
                         predio=predio.text.toString().trim(),
@@ -162,7 +163,8 @@ class MainActivity : Activity() {
                         enderecoReferencia=endereco.text.toString().trim(),
                         initialPayment=when(payment.checkedRadioButtonId){rbAd.id->"Pago adiantado";rbNp.id->"Não pago";else->"Não informado"},
                         purchaseValue=valor.text.toString().trim()
-                    )\n                    showReview()\n                }
+                    )
+                    showReview()\n                }
             }
         })
         addGap(v); v.addView(button("← VOLTAR"){showHome()}); finish(v)

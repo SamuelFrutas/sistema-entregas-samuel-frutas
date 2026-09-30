@@ -50,11 +50,13 @@ class MainActivity : Activity() {
         base("Nova entrega")
         val noAddress=CheckBox(this).apply{text="Entrega sem endereço";setTextColor(Color.WHITE)}
         val pred=field("Prédio (somente números)",InputType.TYPE_CLASS_NUMBER)
-        val bloco=field("Bloco (somente números)",InputType.TYPE_CLASS_NUMBER)\n        val alphaBlock=CheckBox(this).apply{text="ABC — permitir letras no bloco";setTextColor(Color.WHITE)}
+        val bloco=field("Bloco (somente números)",InputType.TYPE_CLASS_NUMBER)
+        val alphaBlock=CheckBox(this).apply{text="ABC — permitir letras no bloco";setTextColor(Color.WHITE)}
         val ap=field("Apartamento (somente números)",InputType.TYPE_CLASS_NUMBER)
         val ref=field("Endereço / referência")
         val value=field("Valor da compra (ex.: 35,00)",InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL)
-        add(txt("Localização",17f));add(pred);add(bloco);add(alphaBlock);add(ap);add(noAddress);add(ref)\n        alphaBlock.setOnCheckedChangeListener{_,checked->bloco.inputType=if(checked)InputType.TYPE_CLASS_TEXT else InputType.TYPE_CLASS_NUMBER}
+        add(txt("Localização",17f));add(pred);add(bloco);add(alphaBlock);add(ap);add(noAddress);add(ref)
+        alphaBlock.setOnCheckedChangeListener{_,checked->bloco.inputType=if(checked)InputType.TYPE_CLASS_TEXT else InputType.TYPE_CLASS_NUMBER}
         add(txt("Pagamento informado antes da entrega",17f))
         val group=RadioGroup(this)
         val paid=RadioButton(this).apply{text="Pago adiantado";setTextColor(Color.WHITE)}

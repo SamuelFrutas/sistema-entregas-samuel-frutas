@@ -43,7 +43,11 @@ class EntregaDbHelper(context: Context) : SQLiteOpenHelper(
         val values = ContentValues().apply {
             put("id", d.id)
             put("dia_entrega", d.day)
-            put("endereco_referencia", d.location)
+            put("predio", d.predio)
+            put("bloco", d.bloco)
+            put("apartamento", d.apartamento)
+            put("sem_endereco", if (d.semEndereco) 1 else 0)
+            put("endereco_referencia", d.enderecoReferencia)
             put("valor_compra_centavos", parseMoneyToCents(d.purchaseValue))
             put("pagamento_inicial", d.initialPayment)
             put("resultado_pagamento", d.finalPayment)
@@ -65,7 +69,11 @@ class EntregaDbHelper(context: Context) : SQLiteOpenHelper(
         ).use { c ->
             val id=c.getColumnIndexOrThrow("id")
             val dayCol=c.getColumnIndexOrThrow("dia_entrega")
-            val location=c.getColumnIndexOrThrow("endereco_referencia")
+            val predio=c.getColumnIndexOrThrow("predio")
+            val bloco=c.getColumnIndexOrThrow("bloco")
+            val apartamento=c.getColumnIndexOrThrow("apartamento")
+            val semEndereco=c.getColumnIndexOrThrow("sem_endereco")
+            val endereco=c.getColumnIndexOrThrow("endereco_referencia")
             val value=c.getColumnIndexOrThrow("valor_compra_centavos")
             val initial=c.getColumnIndexOrThrow("pagamento_inicial")
             val finalCol=c.getColumnIndexOrThrow("resultado_pagamento")
@@ -77,7 +85,11 @@ class EntregaDbHelper(context: Context) : SQLiteOpenHelper(
                 result.add(MainActivity.Delivery(
                     id=c.getString(id),
                     day=c.getString(dayCol),
-                    location=c.getString(location) ?: "",
+                    predio=c.getString(predio) ?: "",
+                    bloco=c.getString(bloco) ?: "",
+                    apartamento=c.getString(apartamento) ?: "",
+                    semEndereco=c.getInt(semEndereco)==1,
+                    enderecoReferencia=c.getString(endereco) ?: "",
                     initialPayment=c.getString(initial) ?: "",
                     purchaseValue=formatCents(c.getLong(value)),
                     finalPayment=c.getString(finalCol),

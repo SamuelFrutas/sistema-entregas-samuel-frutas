@@ -1,6 +1,9 @@
 package br.com.samuelfrutas.entregas
 
 import android.app.Activity
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.graphics.Color
 import android.os.Bundle
 import android.text.InputType
@@ -38,7 +41,7 @@ class MainActivity : Activity() {
         titleBox.addView(label(title, 24f, white))
         subtitle?.let { titleBox.addView(label(it, 14f, muted)) }
         header.addView(titleBox, LinearLayout.LayoutParams(0, -2, 1f))
-        header.addView(label("● OFFLINE / ONLINE", 12f, green))
+        header.addView(label(if (isOnline()) "● ONLINE" else "● OFFLINE", 12f, green))
         root.addView(header)
         return root
     }
@@ -217,6 +220,22 @@ class MainActivity : Activity() {
         addGap(v);v.addView(button("← INÍCIO"){showHome()});finish(v)
     }
 
-    private fun showSync(){val v=base("Sincronização","Operação offline-first");addGap(v);v.addView(card("STATUS","Sincronização real será implementada nos blocos 5 e 6."));addGap(v);v.addView(card("SEGURANÇA","Registros locais não serão removidos antes da confirmação."));addGap(v);v.addView(button("← INÍCIO"){showHome()});finish(v)}
+    private fun showSync(){
+        val v=base("Sincronização","Operação offline-first");addGap(v)
+        val pendingCount=deliveries.size
+        v.addView(card("MODO",if(isOnline())"Online — dados continuam sendo gravados primeiro no SQLite." else "Offline — as entregas ficam armazenadas no aparelho."))
+        addGap(v)
+        v.addView(card("REGISTROS LOCAIS",pendingCount.toString()+" entrega(s) carregada(s) para hoje."))
+        addGap(v)
+        v.addView(card("SEGURANÇA","Nenhum registro local é apagado neste bloco. O status permanece PENDENTE até a futura sincronização com Firebase."))
+        addGap(v);v.addView(button("← INÍCIO"){showHome()});finish(v)
+    }
+
+    private fun isOnline():Boolean{
+        val cm=getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val n=cm.activeNetwork ?: return false
+        val caps=cm.getNetworkCapabilities(n) ?: return false
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
     private fun showMenu(){val v=base("Menu","Sistema de Entregas");addGap(v);v.addView(button("ENTREGAS PENDENTES"){showPending()});addGap(v);v.addView(button("ENTREGAS REALIZADAS"){showCompleted()});addGap(v);v.addView(button("SINCRONIZAÇÃO"){showSync()});addGap(v);v.addView(button("← INÍCIO"){showHome()});finish(v)}
 }

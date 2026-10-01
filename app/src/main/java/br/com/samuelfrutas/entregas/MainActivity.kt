@@ -339,7 +339,7 @@ class MainActivity : Activity() {
         add(section("Local da entrega"), 12)
 
         val pred = field("Prédio *", InputType.TYPE_CLASS_NUMBER)
-        val bloco = field("Bloco *")
+        val bloco = field("Bloco *", InputType.TYPE_CLASS_NUMBER)
         val semBloco = check("Prédio não possui bloco")
         val alphaBlock = check("Permitir letras no bloco")
         val ap = field("Apartamento *", InputType.TYPE_CLASS_NUMBER)
@@ -452,10 +452,13 @@ class MainActivity : Activity() {
         add(card("◉  " + labelInitial(e.pagamentoInicial) + "\nValor da compra: " +
             centsText(e.valorCompraCentavos).ifBlank { "Não informado" }, 15f), 8)
         add(card("✓  A entrega será salva no aparelho e poderá ser feita sem internet.", 12f, panel2), 8)
-        val row = LinearLayout(this)
-        row.addView(btn("EDITAR") { paymentStep() }, LinearLayout.LayoutParams(0, 54, 1f).apply { rightMargin = 5 })
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        row.addView(btn("EDITAR") { paymentStep() },
+            LinearLayout.LayoutParams(-1, dp(48)).apply { bottomMargin = dp(8) })
         row.addView(primary("✓  SALVAR ENTREGA") { db.inserir(e); confirmation() },
-            LinearLayout.LayoutParams(0, 54, 1f).apply { leftMargin = 5 })
+            LinearLayout.LayoutParams(-1, dp(52)))
         add(row, 14)
     }
 
@@ -473,8 +476,8 @@ class MainActivity : Activity() {
             gravity = Gravity.CENTER; setPadding(dp(20), dp(10), dp(20), dp(18))
         })
         add(box, 25)
-        add(btn("VER PRÓXIMAS ENTREGAS") { pending() }, 12)
-        add(primary("VOLTAR PARA PENDENTES") { pending() }, 10)
+        add(primary("＋  ADICIONAR NOVA ENTREGA") { newDelivery() }, 12)
+        add(btn("☷  VER ENTREGAS PENDENTES") { pending() }, 10)
     }
 
     private fun pending() {

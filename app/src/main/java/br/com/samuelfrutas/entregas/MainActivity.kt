@@ -172,9 +172,9 @@ class MainActivity : Activity() {
     private fun location(e: EntregaLocal): String {
         if (e.semEndereco) return "📍 " + e.enderecoReferencia
         val parts = mutableListOf<String>()
-        if (e.predio.isNotBlank()) parts.add("Prédio \${e.predio}")
-        if (e.bloco.isNotBlank()) parts.add("Bloco \${e.bloco}")
-        if (e.apartamento.isNotBlank()) parts.add("Apt \${e.apartamento}")
+        if (e.predio.isNotBlank()) parts.add("Prédio ${e.predio}")
+        if (e.bloco.isNotBlank()) parts.add("Bloco ${e.bloco}")
+        if (e.apartamento.isNotBlank()) parts.add("Apt ${e.apartamento}")
         return parts.joinToString(" • ")
     }
 
@@ -182,9 +182,9 @@ class MainActivity : Activity() {
         base("Samuel Frutas")
         add(txt("Sistema de Entregas", 16f, muted), 0)
         add(cardText(
-            "Hoje\\n\${today}\\n\\n" +
-            "Pendentes     \${db.listarDia(today).count { !it.realizada }}\\n" +
-            "Realizadas    \${db.listarDia(today).count { it.realizada }}",
+            "Hoje\n${today}\n\n" +
+            "Pendentes     ${db.listarDia(today).count { !it.realizada }}\n" +
+            "Realizadas    ${db.listarDia(today).count { it.realizada }}",
             17f
         ), 14)
         add(primaryBtn("＋  NOVA ENTREGA") { newDelivery() }, 14)
@@ -316,9 +316,10 @@ class MainActivity : Activity() {
         base("Confirmar entrega")
         add(txt("CONFIRA OS DADOS", 13f, green), 0)
         add(cardText(location(e), 17f), 10)
+        val valor = centsText(e.valorCompraCentavos).ifBlank { "não informado" }
         add(cardText(
-            "Pagamento inicial: \${labelInitial(e.pagamentoInicial)}\\n" +
-            "Valor da compra: \${centsText(e.valorCompraCentavos).ifBlank { "não informado" }}",
+            "Pagamento inicial: " + labelInitial(e.pagamentoInicial) + "\n" +
+            "Valor da compra: " + valor,
             16f
         ))
         add(primaryBtn("SALVAR ENTREGA") {
@@ -342,8 +343,8 @@ class MainActivity : Activity() {
         if (list.isEmpty()) add(cardText("Nenhuma entrega realizada.", 17f), 12)
         list.forEach { e ->
             add(cardText(
-                location(e) + "\\n" + labelResult(e.resultadoPagamento) +
-                    if (e.formaPagamento.isNotBlank()) " • \${e.formaPagamento}" else "",
+                location(e) + "\n" + labelResult(e.resultadoPagamento) +
+                    if (e.formaPagamento.isNotBlank()) " • ${e.formaPagamento}" else "",
                 16f
             ), 8)
         }
@@ -352,7 +353,8 @@ class MainActivity : Activity() {
     private fun finish(e: EntregaLocal) {
         base("Finalizar entrega")
         add(cardText(location(e), 17f), 0)
-        add(txt("Valor da compra: \${centsText(e.valorCompraCentavos).ifBlank { "não informado" }}", 15f, muted), 4)
+        val valor = centsText(e.valorCompraCentavos).ifBlank { "não informado" }
+        add(txt("Valor da compra: " + valor, 15f, muted), 4)
 
         add(txt("RESULTADO", 13f, green), 18)
         val rg = RadioGroup(this).apply {
@@ -400,7 +402,7 @@ class MainActivity : Activity() {
 
     private fun syncScreen() {
         base("Sincronização")
-        add(cardText("Status\\nDados locais aguardando sincronização central.", 17f), 0)
+        add(cardText("Status\nDados locais aguardando sincronização central.", 17f), 0)
         add(txt("Firebase será conectado na etapa de sincronização.", 14f, muted), 8)
         add(btn("←  Voltar") { home() }, 18)
     }

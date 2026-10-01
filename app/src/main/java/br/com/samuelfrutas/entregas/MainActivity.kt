@@ -89,10 +89,8 @@ class MainActivity : Activity() {
         })
         bar.addView(titleBox)
         bar.addView(TextView(this).apply {
-            text = "☰"
-            textSize = 24f
+            setImageResource(br.com.samuelfrutas.entregas.R.drawable.ic_menu)
             gravity = Gravity.CENTER
-            setTextColor(Color.WHITE)
             background = rounded(surface2, 14f, Color.rgb(35, 76, 102))
             layoutParams = LinearLayout.LayoutParams(dp(44), dp(44))
             setOnClickListener { menuScreen() }
@@ -100,6 +98,28 @@ class MainActivity : Activity() {
         root.addView(bar)
         setContentView(scroll)
     }
+
+    private fun icon(resId: Int, size: Int = 24): ImageView = ImageView(this).apply {
+        setImageResource(resId)
+        layoutParams = LinearLayout.LayoutParams(dp(size), dp(size))
+        scaleType = ImageView.ScaleType.CENTER_INSIDE
+    }
+
+    private fun iconTitle(resId: Int, title: String, subtitle: String = ""): LinearLayout =
+        LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(14), dp(10), dp(14), dp(10))
+            addView(icon(resId, 28))
+            val texts = LinearLayout(this@MainActivity).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, -2, 1f)
+                setPadding(dp(10), 0, 0, 0)
+                addView(txt(title, 15f, Color.WHITE, true))
+                if (subtitle.isNotBlank()) addView(txt(subtitle, 11f, muted))
+            }
+            addView(texts)
+        }
 
     private fun txt(s: String, size: Float = 15f, color: Int = Color.WHITE, bold: Boolean = false) =
         TextView(this).apply {
@@ -287,30 +307,30 @@ class MainActivity : Activity() {
         add(mode, 10)
 
         val grid = LinearLayout(this)
-        val pending = card("☷\n\nENTREGAS\nPENDENTES\n" + pendingCount, 14f)
-        pending.gravity = Gravity.CENTER
+        val pending = iconTitle(R.drawable.ic_pending, "ENTREGAS PENDENTES", "$pendingCount entregas")
+        pending.background = rounded(panel, 14f, Color.rgb(35, 76, 102))
         pending.setOnClickListener { pending() }
-        val done = card("✓\n\nENTREGAS\nREALIZADAS\n" + doneCount, 14f)
-        done.gravity = Gravity.CENTER
+        val done = iconTitle(R.drawable.ic_check_circle, "ENTREGAS REALIZADAS", "$doneCount entregas")
+        done.background = rounded(panel, 14f, Color.rgb(35, 76, 102))
         done.setOnClickListener { completed() }
         grid.addView(pending, LinearLayout.LayoutParams(0, dp(126), 1f).apply { rightMargin = 5 })
         grid.addView(done, LinearLayout.LayoutParams(0, dp(126), 1f).apply { leftMargin = 5 })
         add(grid, 10)
 
-        val newBox = primary("＋  NOVA ENTREGA") { newDelivery() }
+        val newBox = primary("NOVA ENTREGA") { newDelivery() }
         newBox.textSize = 17f
         newBox.minHeight = dp(72)
         add(newBox, 10)
 
-        val day = card("▥  MEU DIA\n" + list.size + " entregas registradas hoje", 14f, panel2)
+        val day = iconTitle(R.drawable.ic_pending, "MEU DIA", list.size.toString() + " entregas registradas hoje").apply { background = rounded(panel2, 14f, Color.rgb(35, 76, 102)) }
         day.setOnClickListener { myDay() }
         add(day, 10)
 
-        val sync = card("☁  SINCRONIZAÇÃO\nDados locais prontos para sincronizar quando a internet voltar.", 13f)
+        val sync = iconTitle(R.drawable.ic_check_circle, "SINCRONIZAÇÃO", "Dados locais prontos para sincronizar quando a internet voltar.")
         sync.setOnClickListener { syncScreen() }
         add(sync, 10)
 
-        add(card("⌁  MODO OFFLINE\nO aplicativo continua funcionando sem internet.", 13f, panel2), 10)
+        add(iconTitle(R.drawable.ic_truck, "MODO OFFLINE", "O aplicativo continua funcionando sem internet.").apply { background = rounded(panel2, 14f, Color.rgb(35, 76, 102)) }, 10)
     }
 
     private fun newDelivery() {
@@ -326,7 +346,11 @@ class MainActivity : Activity() {
         val noAddress = check("Entrega sem endereço")
         val ref = field("Endereço / referência *")
 
-        add(pred); add(bloco); add(semBloco, 2); add(alphaBlock, 0); add(ap); add(noAddress, 8); add(ref)
+        val row1 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        row1.addView(pred, LinearLayout.LayoutParams(0, dp(48), 1f).apply { rightMargin = dp(4) })
+        row1.addView(bloco, LinearLayout.LayoutParams(0, dp(48), 0.72f).apply { leftMargin = dp(4); rightMargin = dp(4) })
+        row1.addView(ap, LinearLayout.LayoutParams(0, dp(48), 0.9f).apply { leftMargin = dp(4) })
+        add(row1); add(semBloco, 2); add(alphaBlock, 0); add(noAddress, 6); add(ref)
 
         alphaBlock.setOnCheckedChangeListener { _, checked ->
             if (!semBloco.isChecked) bloco.inputType = if (checked) InputType.TYPE_CLASS_TEXT else InputType.TYPE_CLASS_NUMBER
@@ -482,9 +506,7 @@ class MainActivity : Activity() {
             setPadding(dp(13), dp(9), dp(13), dp(9))
         }
         val top = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-        top.addView(txt("⌖", 25f, Color.rgb(204, 151, 255)).apply {
-            gravity = Gravity.CENTER; layoutParams = LinearLayout.LayoutParams(dp(34), dp(44))
-        })
+        top.addView(icon(R.drawable.ic_location, 28).apply { layoutParams = LinearLayout.LayoutParams(dp(34), dp(44)) })
         val info = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(0, -2, 1f)

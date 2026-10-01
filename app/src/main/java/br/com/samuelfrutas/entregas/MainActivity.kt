@@ -503,25 +503,64 @@ class MainActivity : Activity() {
     }
 
     private fun makePendingCard(e: EntregaLocal): View {
+        val accent = when (e.pagamentoInicial) {
+            "NAO_PAGO" -> Color.rgb(245, 35, 58)
+            "PAGO_ADIANTADO" -> Color.rgb(32, 139, 242)
+            else -> Color.rgb(242, 166, 24)
+        }
         val box = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            background = rounded(panel, 14f, Color.rgb(35, 76, 102))
-            setPadding(dp(13), dp(9), dp(13), dp(9))
+            background = rounded(Color.rgb(6, 24, 37), 16f, accent)
+            setPadding(0, 0, 0, 0)
         }
-        val top = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-        top.addView(icon(R.drawable.ic_location, 28).apply { layoutParams = LinearLayout.LayoutParams(dp(34), dp(44)) })
+
+        val body = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        val side = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            background = rounded(accent, 16f)
+            setPadding(dp(8), dp(8), dp(8), dp(8))
+            layoutParams = LinearLayout.LayoutParams(dp(62), dp(126))
+        }
+        side.addView(txt("#" + e.id.toString().padStart(3, '0'), 16f, Color.WHITE, true).apply {
+            gravity = Gravity.CENTER
+        })
+        side.addView(icon(R.drawable.ic_pending, 32))
+        body.addView(side)
+
         val info = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(0, -2, 1f)
+            setPadding(dp(12), dp(9), dp(8), dp(9))
         }
-        info.addView(txt(location(e), 16f, Color.WHITE, true))
-        info.addView(txt(centsText(e.valorCompraCentavos).ifBlank { "Valor não informado" }, 13f))
-        top.addView(info)
-        top.addView(statusChip(labelInitial(e.pagamentoInicial),
-            if (e.pagamentoInicial == "NAO_PAGO") Color.rgb(190, 38, 50) else Color.rgb(35, 64, 85)))
-        box.addView(top)
-        box.addView(primary("ABRIR ENTREGA") { finish(e) }, LinearLayout.LayoutParams(-1, dp(40)).apply { topMargin = 5 })
-        return box
+        info.addView(txt("⌖  " + location(e), 17f, Color.WHITE, true))
+        info.addView(txt("🛒  " + centsText(e.valorCompraCentavos).ifBlank { "Valor não informado" }, 15f, Color.WHITE, true))
+        body.addView(info)
+
+        val actions = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setPadding(dp(6), dp(8), dp(10), dp(8))
+            layoutParams = LinearLayout.LayoutParams(dp(142), -2)
+        }
+        actions.addView(statusChip(labelInitial(e.pagamentoInicial),
+            if (e.pagamentoInicial == "NAO_PAGO") Color.rgb(225, 35, 52)
+            else if (e.pagamentoInicial == "PAGO_ADIANTADO") Color.rgb(30, 122, 225)
+            else Color.rgb(205, 130, 20)))
+        actions.addView(primary("ABRIR ENTREGA   →") { finish(e) },
+            LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(8) })
+        body.addView(actions)
+
+        box.addView(body)
+        return box.apply {
+            layoutParams = LinearLayout.LayoutParams(-1, -2).apply {
+                bottomMargin = dp(10)
+            }
+        }
     }
 
     private fun completed() {

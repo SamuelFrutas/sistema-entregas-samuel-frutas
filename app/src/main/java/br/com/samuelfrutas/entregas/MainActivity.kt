@@ -24,6 +24,8 @@ class MainActivity : Activity() {
     private val surface = Color.rgb(7, 28, 43)
     private val surface2 = Color.rgb(11, 38, 56)
     private val muted = Color.rgb(167, 191, 207)
+    private val panel = surface
+    private val panel2 = surface2
     private val today get() = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
     private val money = NumberFormat.getCurrencyInstance(Locale("pt", "BR"))
     private var currentEntrega: EntregaLocal? = null
@@ -96,7 +98,138 @@ class MainActivity : Activity() {
         setContentView(scroll)
     }
 
-    private fun txt(s: String, size: Float = 16f, color: Int = Color.WHITE) =
+    private fun txt(s: String, size: Float = 15f, color: Int = Color.WHITE, bold: Boolean = false) =
+        private fun section(s: String) = txt(s.uppercase(Locale.getDefault()), 11f, green, true)
+
+    private fun card(s: String, size: Float = 15f, bgColor: Int = panel) =
+        TextView(this).apply {
+            text = s
+            textSize = size
+            setTextColor(Color.WHITE)
+            setPadding(16, 14, 16, 14)
+            background = rounded(bgColor, 14f, Color.rgb(35, 76, 102))
+        }
+
+    private fun btn(s: String, action: () -> Unit) =
+        TextView(this).apply {
+            text = s
+            textSize = 15f
+            setTextColor(Color.WHITE)
+            setTypeface(null, Typeface.BOLD)
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(16, 13, 16, 13)
+            background = rounded(panel2, 14f, Color.rgb(35, 76, 102))
+            minHeight = 54
+            setOnClickListener { action() }
+        }
+
+    private fun primary(s: String, action: () -> Unit) =
+        TextView(this).apply {
+            text = s
+            textSize = 15f
+            setTextColor(Color.BLACK)
+            setTypeface(null, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(16, 13, 16, 13)
+            background = rounded(green, 14f)
+            minHeight = 54
+            setOnClickListener { action() }
+        }
+
+    private fun danger(s: String, action: () -> Unit) =
+        TextView(this).apply {
+            text = s
+            textSize = 15f
+            setTextColor(Color.WHITE)
+            setTypeface(null, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setPadding(16, 13, 16, 13)
+            background = rounded(Color.rgb(175, 35, 42), 14f)
+            minHeight = 50
+            setOnClickListener { action() }
+        }
+
+    private fun stepBar(active: Int) {
+        val box = LinearLayout(this).apply {
+            background = rounded(panel, 13f, Color.rgb(35, 76, 102))
+            setPadding(8, 8, 8, 8)
+            gravity = Gravity.CENTER
+        }
+        val labels = listOf("Local", "Pagamento", "Revisão")
+        labels.forEachIndexed { i, label ->
+            val item = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(0, 54, 1f)
+            }
+            item.addView(TextView(this).apply {
+                text = (i + 1).toString()
+                textSize = 12f
+                gravity = Gravity.CENTER
+                setTextColor(if (i + 1 <= active) Color.BLACK else Color.WHITE)
+                setTypeface(null, Typeface.BOLD)
+                background = rounded(if (i + 1 <= active) green else panel2, 50f, if (i + 1 <= active) green else Color.rgb(35, 76, 102))
+                layoutParams = LinearLayout.LayoutParams(28, 28)
+            })
+            item.addView(TextView(this).apply {
+                text = label
+                textSize = 10f
+                gravity = Gravity.CENTER
+                setTextColor(if (i + 1 == active) green else muted)
+            })
+            box.addView(item)
+        }
+        add(box, 0)
+    }
+
+    private fun statusChip(s: String, color: Int) =
+        TextView(this).apply {
+            text = s
+            textSize = 11f
+            setTypeface(null, Typeface.BOLD)
+            setTextColor(Color.WHITE)
+            gravity = Gravity.CENTER
+            setPadding(10, 5, 10, 5)
+            background = rounded(color, 10f)
+        }
+
+    private fun add(v: View, top: Int = 8) {
+        root.addView(v, LinearLayout.LayoutParams(-1, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = top
+        })
+    }
+
+    private fun field(hint: String, input: Int = InputType.TYPE_CLASS_TEXT) =
+        EditText(this).apply {
+            this.hint = hint
+            inputType = input
+            setTextColor(Color.WHITE)
+            setHintTextColor(muted)
+            setPadding(14, 4, 14, 4)
+            background = rounded(panel2, 12f, Color.rgb(35, 76, 102))
+            minHeight = 54
+        }
+
+    private fun check(s: String) =
+        CheckBox(this).apply {
+            text = s
+            textSize = 14f
+            setTextColor(Color.WHITE)
+            buttonTintList = android.content.res.ColorStateList.valueOf(green)
+            setPadding(0, 3, 0, 3)
+        }
+
+    private fun radio(s: String) =
+        RadioButton(this).apply {
+            text = s
+            textSize = 14f
+            setTextColor(Color.WHITE)
+            buttonTintList = android.content.res.ColorStateList.valueOf(green)
+            setPadding(8, 5, 8, 5)
+            minHeight = 58
+        }
+
+    
         TextView(this).apply {
             text = s
             textSize = size

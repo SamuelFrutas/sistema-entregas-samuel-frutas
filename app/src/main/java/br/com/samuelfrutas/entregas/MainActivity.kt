@@ -30,6 +30,9 @@ class MainActivity : Activity() {
     private val money = NumberFormat.getCurrencyInstance(Locale("pt", "BR"))
     private var currentEntrega: EntregaLocal? = null
 
+    private fun dp(v: Int): Int = (v * resources.displayMetrics.density + 0.5f).toInt()
+    private fun sp(v: Float): Float = v
+
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         db = EntregaDbHelper(this)
@@ -47,7 +50,7 @@ class MainActivity : Activity() {
         root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(bg)
-            setPadding(16, 8, 16, 20)
+            setPadding(dp(16), dp(8), dp(16), dp(20))
         }
         val scroll = ScrollView(this).apply {
             setBackgroundColor(bg)
@@ -56,7 +59,7 @@ class MainActivity : Activity() {
         }
         val bar = LinearLayout(this).apply {
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, 4, 0, 10)
+            setPadding(0, dp(4), 0, dp(10))
         }
         if (back != null) {
             bar.addView(TextView(this).apply {
@@ -64,13 +67,13 @@ class MainActivity : Activity() {
                 textSize = 34f
                 gravity = Gravity.CENTER
                 setTextColor(Color.WHITE)
-                layoutParams = LinearLayout.LayoutParams(46, 54)
+                layoutParams = LinearLayout.LayoutParams(dp(40), dp(48))
                 setOnClickListener { back() }
             })
         }
         val titleBox = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            layoutParams = LinearLayout.LayoutParams(0, 58, 1f)
+            layoutParams = LinearLayout.LayoutParams(0, dp(48), 1f)
             gravity = Gravity.CENTER_VERTICAL
         }
         titleBox.addView(TextView(this).apply {
@@ -91,7 +94,7 @@ class MainActivity : Activity() {
             gravity = Gravity.CENTER
             setTextColor(Color.WHITE)
             background = rounded(surface2, 14f, Color.rgb(35, 76, 102))
-            layoutParams = LinearLayout.LayoutParams(50, 50)
+            layoutParams = LinearLayout.LayoutParams(dp(44), dp(44))
             setOnClickListener { menuScreen() }
         })
         root.addView(bar)
@@ -104,7 +107,7 @@ class MainActivity : Activity() {
             textSize = size
             setTextColor(color)
             if (bold) setTypeface(null, Typeface.BOLD)
-            setPadding(2, 5, 2, 5)
+            setPadding(dp(2), dp(4), dp(2), dp(4))
         }
 
     private fun section(s: String) = txt(s.uppercase(Locale.getDefault()), 11f, green, true)
@@ -114,7 +117,7 @@ class MainActivity : Activity() {
             text = s
             textSize = size
             setTextColor(Color.WHITE)
-            setPadding(16, 14, 16, 14)
+            setPadding(dp(14), dp(12), dp(14), dp(12))
             background = rounded(bgColor, 14f, Color.rgb(35, 76, 102))
         }
 
@@ -125,9 +128,9 @@ class MainActivity : Activity() {
             setTextColor(Color.WHITE)
             setTypeface(null, Typeface.BOLD)
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(16, 13, 16, 13)
+            setPadding(dp(14), dp(11), dp(14), dp(11))
             background = rounded(panel2, 14f, Color.rgb(35, 76, 102))
-            minHeight = 54
+            minHeight = dp(48)
             setOnClickListener { action() }
         }
 
@@ -140,7 +143,7 @@ class MainActivity : Activity() {
             gravity = Gravity.CENTER
             setPadding(16, 13, 16, 13)
             background = rounded(green, 14f)
-            minHeight = 54
+            minHeight = dp(48)
             setOnClickListener { action() }
         }
 
@@ -153,14 +156,14 @@ class MainActivity : Activity() {
             gravity = Gravity.CENTER
             setPadding(16, 13, 16, 13)
             background = rounded(Color.rgb(175, 35, 42), 14f)
-            minHeight = 50
+            minHeight = dp(46)
             setOnClickListener { action() }
         }
 
     private fun stepBar(active: Int) {
         val box = LinearLayout(this).apply {
             background = rounded(panel, 13f, Color.rgb(35, 76, 102))
-            setPadding(8, 8, 8, 8)
+            setPadding(dp(8), dp(6), dp(8), dp(6))
             gravity = Gravity.CENTER
         }
         val labels = listOf("Local", "Pagamento", "Revisão")
@@ -168,7 +171,7 @@ class MainActivity : Activity() {
             val item = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 gravity = Gravity.CENTER
-                layoutParams = LinearLayout.LayoutParams(0, 54, 1f)
+                layoutParams = LinearLayout.LayoutParams(0, dp(52), 1f)
             }
             item.addView(TextView(this).apply {
                 text = (i + 1).toString()
@@ -177,7 +180,7 @@ class MainActivity : Activity() {
                 setTextColor(if (i + 1 <= active) Color.BLACK else Color.WHITE)
                 setTypeface(null, Typeface.BOLD)
                 background = rounded(if (i + 1 <= active) green else panel2, 50f, if (i + 1 <= active) green else Color.rgb(35, 76, 102))
-                layoutParams = LinearLayout.LayoutParams(28, 28)
+                layoutParams = LinearLayout.LayoutParams(dp(28), dp(28))
             })
             item.addView(TextView(this).apply {
                 text = label
@@ -197,7 +200,7 @@ class MainActivity : Activity() {
             setTypeface(null, Typeface.BOLD)
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
-            setPadding(10, 5, 10, 5)
+            setPadding(dp(9), dp(4), dp(9), dp(4))
             background = rounded(color, 10f)
         }
 
@@ -213,7 +216,7 @@ class MainActivity : Activity() {
             inputType = input
             setTextColor(Color.WHITE)
             setHintTextColor(muted)
-            setPadding(14, 4, 14, 4)
+            setPadding(dp(14), dp(4), dp(14), dp(4))
             background = rounded(panel2, 12f, Color.rgb(35, 76, 102))
             minHeight = 54
         }
@@ -224,7 +227,7 @@ class MainActivity : Activity() {
             textSize = 14f
             setTextColor(Color.WHITE)
             buttonTintList = android.content.res.ColorStateList.valueOf(green)
-            setPadding(0, 3, 0, 3)
+            setPadding(0, dp(2), 0, dp(2))
         }
 
     private fun radio(s: String) =
@@ -233,8 +236,8 @@ class MainActivity : Activity() {
             textSize = 14f
             setTextColor(Color.WHITE)
             buttonTintList = android.content.res.ColorStateList.valueOf(green)
-            setPadding(8, 5, 8, 5)
-            minHeight = 58
+            setPadding(dp(8), dp(4), dp(8), dp(4))
+            minHeight = dp(52)
         }
 
         private fun moneyToCents(s: String): Long? =
@@ -261,13 +264,13 @@ class MainActivity : Activity() {
         val head = LinearLayout(this).apply {
             gravity = Gravity.CENTER_VERTICAL
             background = rounded(panel, 16f, Color.rgb(42, 91, 124))
-            setPadding(12, 8, 12, 8)
+            setPadding(dp(12), dp(7), dp(12), dp(7))
         }
         head.addView(TextView(this).apply {
             text = "🍎"
             textSize = 32f
             gravity = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(50, 56)
+            layoutParams = LinearLayout.LayoutParams(dp(42), dp(48))
         })
         val logo = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -290,13 +293,13 @@ class MainActivity : Activity() {
         val done = card("✓\n\nENTREGAS\nREALIZADAS\n" + doneCount, 14f)
         done.gravity = Gravity.CENTER
         done.setOnClickListener { completed() }
-        grid.addView(pending, LinearLayout.LayoutParams(0, 142, 1f).apply { rightMargin = 5 })
-        grid.addView(done, LinearLayout.LayoutParams(0, 142, 1f).apply { leftMargin = 5 })
+        grid.addView(pending, LinearLayout.LayoutParams(0, dp(126), 1f).apply { rightMargin = 5 })
+        grid.addView(done, LinearLayout.LayoutParams(0, dp(126), 1f).apply { leftMargin = 5 })
         add(grid, 10)
 
         val newBox = primary("＋  NOVA ENTREGA") { newDelivery() }
         newBox.textSize = 17f
-        newBox.minHeight = 102
+        newBox.minHeight = dp(72)
         add(newBox, 10)
 
         val day = card("▥  MEU DIA\n" + list.size + " entregas registradas hoje", 14f, panel2)
@@ -379,7 +382,7 @@ class MainActivity : Activity() {
         val group = RadioGroup(this).apply {
             orientation = RadioGroup.VERTICAL
             background = rounded(panel, 14f, Color.rgb(35, 76, 102))
-            setPadding(8, 4, 8, 4)
+            setPadding(dp(8), dp(4), dp(8), dp(4))
         }
         val paid = radio("✓  Pago adiantado\n     Cliente já pagou. Não precisa informar o valor.")
         val unpaid = radio("●  Não pago\n     Cliente vai pagar na entrega. É obrigatório informar o valor.")
@@ -437,13 +440,13 @@ class MainActivity : Activity() {
         val box = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setPadding(18, 35, 18, 35)
+            setPadding(dp(18), dp(28), dp(18), dp(28))
             background = rounded(panel, 18f, green)
         }
         box.addView(TextView(this).apply { text = "✓"; textSize = 64f; gravity = Gravity.CENTER; setTextColor(green) })
         box.addView(txt("Entrega registrada!", 23f, Color.WHITE, true).apply { gravity = Gravity.CENTER })
         box.addView(txt("A entrega foi salva no aparelho e será sincronizada quando tiver internet.", 14f, muted).apply {
-            gravity = Gravity.CENTER; setPadding(20, 12, 20, 20)
+            gravity = Gravity.CENTER; setPadding(dp(20), dp(10), dp(20), dp(18))
         })
         add(box, 25)
         add(btn("VER PRÓXIMAS ENTREGAS") { pending() }, 12)
@@ -476,11 +479,11 @@ class MainActivity : Activity() {
         val box = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             background = rounded(panel, 14f, Color.rgb(35, 76, 102))
-            setPadding(13, 9, 13, 9)
+            setPadding(dp(13), dp(9), dp(13), dp(9))
         }
         val top = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
         top.addView(txt("⌖", 25f, Color.rgb(204, 151, 255)).apply {
-            gravity = Gravity.CENTER; layoutParams = LinearLayout.LayoutParams(38, 50)
+            gravity = Gravity.CENTER; layoutParams = LinearLayout.LayoutParams(dp(34), dp(44))
         })
         val info = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -492,7 +495,7 @@ class MainActivity : Activity() {
         top.addView(statusChip(labelInitial(e.pagamentoInicial),
             if (e.pagamentoInicial == "NAO_PAGO") Color.rgb(190, 38, 50) else Color.rgb(35, 64, 85)))
         box.addView(top)
-        box.addView(primary("ABRIR ENTREGA") { finish(e) }, LinearLayout.LayoutParams(-1, 42).apply { topMargin = 5 })
+        box.addView(primary("ABRIR ENTREGA") { finish(e) }, LinearLayout.LayoutParams(-1, dp(40)).apply { topMargin = 5 })
         return box
     }
 
@@ -521,7 +524,7 @@ class MainActivity : Activity() {
         val box = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             background = rounded(panel, 14f, Color.rgb(35, 76, 102))
-            setPadding(13, 10, 13, 10)
+            setPadding(dp(13), dp(10), dp(13), dp(10))
         }
         box.addView(txt(location(e) + "\n" + centsText(e.valorCompraCentavos).ifBlank { "Valor não informado" }, 15f, Color.WHITE, true))
         val result = if (e.resultadoPagamento == "PAGO") "Pago" else "Não pago"
@@ -550,11 +553,11 @@ class MainActivity : Activity() {
         val methods = RadioGroup(this).apply {
             orientation = RadioGroup.HORIZONTAL
             background = rounded(panel, 14f, Color.rgb(35, 76, 102))
-            setPadding(6, 2, 6, 2)
+            setPadding(dp(6), dp(2), dp(6), dp(2))
         }
         val cash = radio("Dinheiro")
         val card = radio("Cartão")
-        methods.addView(cash, RadioGroup.LayoutParams(0, 58, 1f))
+        methods.addView(cash, RadioGroup.LayoutParams(0, dp(52), 1f))
         methods.addView(card, RadioGroup.LayoutParams(0, 58, 1f))
         cash.isChecked = true
         add(methods)

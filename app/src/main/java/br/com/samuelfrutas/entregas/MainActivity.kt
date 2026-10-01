@@ -99,7 +99,15 @@ class MainActivity : Activity() {
     }
 
     private fun txt(s: String, size: Float = 15f, color: Int = Color.WHITE, bold: Boolean = false) =
-        private fun section(s: String) = txt(s.uppercase(Locale.getDefault()), 11f, green, true)
+        TextView(this).apply {
+            text = s
+            textSize = size
+            setTextColor(color)
+            if (bold) setTypeface(null, Typeface.BOLD)
+            setPadding(2, 5, 2, 5)
+        }
+
+    private fun section(s: String) = txt(s.uppercase(Locale.getDefault()), 11f, green, true)
 
     private fun card(s: String, size: Float = 15f, bgColor: Int = panel) =
         TextView(this).apply {
@@ -229,85 +237,7 @@ class MainActivity : Activity() {
             minHeight = 58
         }
 
-    
-        TextView(this).apply {
-            text = s
-            textSize = size
-            setTextColor(color)
-            setPadding(2, 6, 2, 6)
-        }
-
-    private fun cardText(s: String, size: Float = 16f) =
-        TextView(this).apply {
-            text = s
-            textSize = size
-            setTextColor(Color.WHITE)
-            setPadding(18, 16, 18, 16)
-            background = rounded(surface, 18f)
-        }
-
-    private fun btn(s: String, action: () -> Unit) =
-        TextView(this).apply {
-            text = s
-            textSize = 16f
-            setTextColor(Color.WHITE)
-            setTypeface(null, Typeface.BOLD)
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(18, 16, 18, 16)
-            background = rounded(surface2, 18f)
-            minHeight = 56
-            setOnClickListener { action() }
-        }
-
-    private fun primaryBtn(s: String, action: () -> Unit) =
-        TextView(this).apply {
-            text = s
-            textSize = 16f
-            setTextColor(Color.BLACK)
-            setTypeface(null, Typeface.BOLD)
-            gravity = Gravity.CENTER
-            setPadding(18, 16, 18, 16)
-            background = rounded(green, 18f)
-            minHeight = 56
-            setOnClickListener { action() }
-        }
-
-    private fun add(v: View, top: Int = 8) {
-        root.addView(v, LinearLayout.LayoutParams(-1, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = top
-        })
-    }
-
-    private fun field(hint: String, input: Int = InputType.TYPE_CLASS_TEXT) =
-        EditText(this).apply {
-            this.hint = hint
-            inputType = input
-            setTextColor(Color.WHITE)
-            setHintTextColor(muted)
-            setPadding(16, 4, 16, 4)
-            background = rounded(surface, 16f, Color.rgb(47, 64, 52))
-            minHeight = 54
-        }
-
-    private fun check(s: String) =
-        CheckBox(this).apply {
-            text = s
-            textSize = 15f
-            setTextColor(Color.WHITE)
-            buttonTintList = android.content.res.ColorStateList.valueOf(green)
-            setPadding(0, 4, 0, 4)
-        }
-
-    private fun radio(s: String) =
-        RadioButton(this).apply {
-            text = s
-            textSize = 15f
-            setTextColor(Color.WHITE)
-            buttonTintList = android.content.res.ColorStateList.valueOf(green)
-            setPadding(0, 3, 0, 3)
-        }
-
-    private fun moneyToCents(s: String): Long? =
+        private fun moneyToCents(s: String): Long? =
         s.replace(".", "").replace(",", ".").toDoubleOrNull()?.let { (it * 100).toLong() }
 
     private fun centsText(v: Long?) =

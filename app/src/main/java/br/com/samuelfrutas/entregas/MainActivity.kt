@@ -276,38 +276,38 @@ class MainActivity : Activity() {
         logo.addView(txt("SAMUEL", 20f, Color.WHITE, true))
         logo.addView(txt("FRUTAS", 11f, green, true))
         head.addView(logo)
-        head.addView(txt("🚚  MODO\\nENTREGADOR", 10f, green, true))
+        head.addView(txt("🚚  MODO\nENTREGADOR", 10f, green, true))
         add(head, 0)
 
-        val mode = card("🚚  MODO ENTREGADOR\\nFuncionando offline", 15f, Color.rgb(4, 75, 48))
+        val mode = card("🚚  MODO ENTREGADOR\nFuncionando offline", 15f, Color.rgb(4, 75, 48))
         mode.background = rounded(Color.rgb(4, 75, 48), 14f, green)
         add(mode, 10)
 
         val grid = LinearLayout(this)
-        val pending = card("☷\\n\\nENTREGAS\\nPENDENTES\\n" + pendingCount, 14f)
+        val pending = card("☷\n\nENTREGAS\nPENDENTES\n" + pendingCount, 14f)
         pending.gravity = Gravity.CENTER
         pending.setOnClickListener { pending() }
-        val done = card("✓\\n\\nENTREGAS\\nREALIZADAS\\n" + doneCount, 14f)
+        val done = card("✓\n\nENTREGAS\nREALIZADAS\n" + doneCount, 14f)
         done.gravity = Gravity.CENTER
         done.setOnClickListener { completed() }
         grid.addView(pending, LinearLayout.LayoutParams(0, 142, 1f).apply { rightMargin = 5 })
         grid.addView(done, LinearLayout.LayoutParams(0, 142, 1f).apply { leftMargin = 5 })
         add(grid, 10)
 
-        val newBox = primary("＋\\nNOVA ENTREGA") { newDelivery() }
+        val newBox = primary("＋\nNOVA ENTREGA") { newDelivery() }
         newBox.textSize = 17f
         newBox.minHeight = 102
         add(newBox, 10)
 
-        val day = card("▥  MEU DIA\\n" + list.size + " entregas registradas hoje", 14f, panel2)
+        val day = card("▥  MEU DIA\n" + list.size + " entregas registradas hoje", 14f, panel2)
         day.setOnClickListener { myDay() }
         add(day, 10)
 
-        val sync = card("☁  SINCRONIZAÇÃO\\nDados locais prontos para sincronizar quando a internet voltar.", 13f)
+        val sync = card("☁  SINCRONIZAÇÃO\nDados locais prontos para sincronizar quando a internet voltar.", 13f)
         sync.setOnClickListener { syncScreen() }
         add(sync, 10)
 
-        add(card("⌁  MODO OFFLINE\\nO aplicativo continua funcionando sem internet.", 13f, panel2), 10)
+        add(card("⌁  MODO OFFLINE\nO aplicativo continua funcionando sem internet.", 13f, panel2), 10)
     }
 
     private fun newDelivery() {
@@ -349,7 +349,7 @@ class MainActivity : Activity() {
         noAddress.setOnCheckedChangeListener { _, _ -> refresh() }
         refresh()
 
-        add(card("ⓘ  Sem bloco? Marque 'Prédio não possui bloco' e continue.\\nSem endereço? Marque a opção e informe uma referência.", 12f, panel2), 10)
+        add(card("ⓘ  Sem bloco? Marque 'Prédio não possui bloco' e continue.\nSem endereço? Marque a opção e informe uma referência.", 12f, panel2), 10)
         add(primary("CONTINUAR   ›") {
             if (!noAddress.isChecked) {
                 if (pred.text.isBlank() || ap.text.isBlank()) { toast("Preencha prédio e apartamento."); return@primary }
@@ -381,9 +381,9 @@ class MainActivity : Activity() {
             background = rounded(panel, 14f, Color.rgb(35, 76, 102))
             setPadding(8, 4, 8, 4)
         }
-        val paid = radio("✓  Pago adiantado\\n     Cliente já pagou. Não precisa informar o valor.")
-        val unpaid = radio("●  Não pago\\n     Cliente vai pagar na entrega. É obrigatório informar o valor.")
-        val unknown = radio("○  Não informado\\n     Não tenho o valor da entrega.")
+        val paid = radio("✓  Pago adiantado\n     Cliente já pagou. Não precisa informar o valor.")
+        val unpaid = radio("●  Não pago\n     Cliente vai pagar na entrega. É obrigatório informar o valor.")
+        val unknown = radio("○  Não informado\n     Não tenho o valor da entrega.")
         group.addView(paid); group.addView(unpaid); group.addView(unknown); unknown.isChecked = true
         add(group)
 
@@ -418,11 +418,11 @@ class MainActivity : Activity() {
         stepBar(3)
         add(section("Resumo da entrega"), 12)
         val address = if (e.semEndereco) e.enderecoReferencia else
-            "Prédio: " + e.predio + "\\n" +
-            (if (e.bloco.isNotBlank()) "Bloco: " + e.bloco + "\\n" else "Bloco: sem bloco\\n") +
+            "Prédio: " + e.predio + "\n" +
+            (if (e.bloco.isNotBlank()) "Bloco: " + e.bloco + "\n" else "Bloco: sem bloco\n") +
             "Apartamento: " + e.apartamento
         add(card("⌖  " + address, 15f), 6)
-        add(card("◉  " + labelInitial(e.pagamentoInicial) + "\\nValor da compra: " +
+        add(card("◉  " + labelInitial(e.pagamentoInicial) + "\nValor da compra: " +
             centsText(e.valorCompraCentavos).ifBlank { "Não informado" }, 15f), 8)
         add(card("✓  A entrega será salva no aparelho e poderá ser feita sem internet.", 12f, panel2), 8)
         val row = LinearLayout(this)
@@ -523,7 +523,7 @@ class MainActivity : Activity() {
             background = rounded(panel, 14f, Color.rgb(35, 76, 102))
             setPadding(13, 10, 13, 10)
         }
-        box.addView(txt(location(e) + "\\n" + centsText(e.valorCompraCentavos).ifBlank { "Valor não informado" }, 15f, Color.WHITE, true))
+        box.addView(txt(location(e) + "\n" + centsText(e.valorCompraCentavos).ifBlank { "Valor não informado" }, 15f, Color.WHITE, true))
         val result = if (e.resultadoPagamento == "PAGO") "Pago" else "Não pago"
         val detail = if (e.formaPagamento.isNotBlank()) result + " • " + e.formaPagamento else result
         box.addView(txt(detail, 12f, if (result == "Pago") green else Color.rgb(240, 70, 75), true))
@@ -532,7 +532,7 @@ class MainActivity : Activity() {
 
     private fun finish(e: EntregaLocal) {
         base("Registrar Entrega", { pending() })
-        add(card("⌖  " + location(e) + "\\nValor da compra: " +
+        add(card("⌖  " + location(e) + "\nValor da compra: " +
             centsText(e.valorCompraCentavos).ifBlank { "Não informado" }, 16f), 0)
         add(section("Resultado da entrega"), 16)
 
@@ -583,10 +583,10 @@ private fun myDay() {
         val pendingCount = list.count { !it.realizada }
         val tips = list.filter { it.realizada }.sumOf { it.caixinhaCentavos }
         val values = list.filter { it.realizada && it.valorCompraCentavos != null }.sumOf { it.valorCompraCentavos ?: 0 }
-        add(card("✓   " + done + "\\nEntregas realizadas", 18f, Color.rgb(6, 60, 95)), 8)
-        add(card("◉   " + centsText(values) + "\\nValor das compras registradas", 17f, Color.rgb(66, 22, 105)), 8)
-        add(card("🎁   " + centsText(tips) + "\\nCaixinhas recebidas", 17f, Color.rgb(73, 57, 3)), 8)
-        add(card("🚚   " + pendingCount + "\\nEntregas ainda pendentes", 17f, Color.rgb(5, 72, 48)), 8)
+        add(card("✓   " + done + "\nEntregas realizadas", 18f, Color.rgb(6, 60, 95)), 8)
+        add(card("◉   " + centsText(values) + "\nValor das compras registradas", 17f, Color.rgb(66, 22, 105)), 8)
+        add(card("🎁   " + centsText(tips) + "\nCaixinhas recebidas", 17f, Color.rgb(73, 57, 3)), 8)
+        add(card("🚚   " + pendingCount + "\nEntregas ainda pendentes", 17f, Color.rgb(5, 72, 48)), 8)
         add(btn("☷  VER ENTREGAS REALIZADAS") { completed() }, 14)
     }
 
@@ -599,7 +599,7 @@ private fun myDay() {
 
     private fun menuScreen() {
         base("Menu", { home() })
-        add(card("🍎  SAMUEL\\nFRUTAS", 20f), 8)
+        add(card("🍎  SAMUEL\nFRUTAS", 20f), 8)
         add(btn("⌂  Início") { home() }, 8)
         add(btn("☷  Entregas Pendentes") { pending() })
         add(btn("✓  Entregas Realizadas") { completed() })

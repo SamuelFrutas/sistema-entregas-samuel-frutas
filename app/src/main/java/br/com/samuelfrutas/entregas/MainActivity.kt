@@ -592,7 +592,7 @@ private fun myDay() {
 
         private fun syncScreen() {
         base("Sincronização")
-        add(cardText("Status\nDados locais aguardando sincronização central.", 17f), 0)
+        add(card("Status\nDados locais aguardando sincronização central.", 17f), 0)
         add(txt("Firebase será conectado na etapa de sincronização.", 14f, muted), 8)
         add(btn("←  Voltar") { home() }, 18)
     }

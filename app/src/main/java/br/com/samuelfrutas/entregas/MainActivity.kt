@@ -47,7 +47,7 @@ class MainActivity : Activity() {
         root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(bg)
-            setPadding(18, 10, 18, 22)
+            setPadding(16, 8, 16, 20)
         }
         val scroll = ScrollView(this).apply {
             setBackgroundColor(bg)
@@ -75,12 +75,12 @@ class MainActivity : Activity() {
         }
         titleBox.addView(TextView(this).apply {
             text = title
-            textSize = 21f
+            textSize = 20f
             setTypeface(null, Typeface.BOLD)
             setTextColor(Color.WHITE)
         })
         titleBox.addView(TextView(this).apply {
-            text = if (back == null) "SAMUEL FRUTAS • ENTREGADOR" else "MODO ENTREGADOR • OFFLINE"
+            text = if (title.isBlank()) "" else if (back == null) "SAMUEL FRUTAS • ENTREGADOR" else "MODO ENTREGADOR • OFFLINE"
             textSize = 10f
             setTextColor(muted)
         })
@@ -253,14 +253,14 @@ class MainActivity : Activity() {
     }
 
     private fun home() {
-        base("Tela Inicial")
+        base("")
         val list = db.listarDia(today)
         val pendingCount = list.count { !it.realizada }
         val doneCount = list.count { it.realizada }
 
         val head = LinearLayout(this).apply {
             gravity = Gravity.CENTER_VERTICAL
-            background = rounded(panel, 16f, Color.rgb(35, 76, 102))
+            background = rounded(panel, 16f, Color.rgb(42, 91, 124))
             setPadding(12, 8, 12, 8)
         }
         head.addView(TextView(this).apply {
@@ -279,7 +279,7 @@ class MainActivity : Activity() {
         head.addView(txt("🚚  MODO\nENTREGADOR", 10f, green, true))
         add(head, 0)
 
-        val mode = card("🚚  MODO ENTREGADOR\nFuncionando offline", 15f, Color.rgb(4, 75, 48))
+        val mode = card("🚚  MODO ENTREGADOR\nFuncionando offline", 14f, Color.rgb(4, 75, 48))
         mode.background = rounded(Color.rgb(4, 75, 48), 14f, green)
         add(mode, 10)
 
@@ -294,7 +294,7 @@ class MainActivity : Activity() {
         grid.addView(done, LinearLayout.LayoutParams(0, 142, 1f).apply { leftMargin = 5 })
         add(grid, 10)
 
-        val newBox = primary("＋\nNOVA ENTREGA") { newDelivery() }
+        val newBox = primary("＋  NOVA ENTREGA") { newDelivery() }
         newBox.textSize = 17f
         newBox.minHeight = 102
         add(newBox, 10)

@@ -88,8 +88,9 @@ class MainActivity : Activity() {
             setTextColor(muted)
         })
         bar.addView(titleBox)
-        bar.addView(TextView(this).apply {
+        bar.addView(ImageView(this).apply {
             setImageResource(br.com.samuelfrutas.entregas.R.drawable.ic_menu)
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
             gravity = Gravity.CENTER
             background = rounded(surface2, 14f, Color.rgb(35, 76, 102))
             layoutParams = LinearLayout.LayoutParams(dp(44), dp(44))

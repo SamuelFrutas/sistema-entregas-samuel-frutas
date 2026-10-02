@@ -54,7 +54,9 @@ class EntregaDbHelper(context: Context) : SQLiteOpenHelper(context, "entregas.db
 
     fun excluir(id: Long) {
         writableDatabase.delete("entregas", "id=?", arrayOf(id.toString()))
-    }\n\n    fun atualizarFinal(id:Long,resultado:String,forma:String,caixinha:Long,observacao:String){
+    }
+
+    fun atualizarFinal(id:Long,resultado:String,forma:String,caixinha:Long,observacao:String){
         val v=ContentValues().apply{put("resultado_pagamento",resultado);put("forma_pagamento",forma);put("caixinha_centavos",caixinha);put("observacao",observacao);put("realizada",1)}
         writableDatabase.update("entregas",v,"id=?",arrayOf(id.toString()))
     }

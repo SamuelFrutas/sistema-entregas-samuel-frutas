@@ -956,12 +956,20 @@ private fun myDay() {
         add(primary("SINCRONIZAR AGORA") {
             val itens = db.listarDia(today)
             if (itens.isEmpty()) {
-                toast("Nenhuma entrega para sincronizar.")
+                toast("Nenhuma entrega de hoje para sincronizar.")
+                firebaseSync.status
+                syncScreen()
             } else {
-                toast("Sincronização iniciada.")
-                itens.forEach { firebaseSync.sync(it) }
+                toast("Sincronizando " + itens.size + " entrega(s)...")
+                itens.forEach { item ->
+                    firebaseSync.sync(item) { ok ->
+                        runOnUiThread {
+                            if (!ok) toast("Falha na sincronização. Veja o status.")
+                            syncScreen()
+                        }
+                    }
+                }
             }
-            syncScreen()
         }, 14)
         add(btn("←  Voltar") { home() }, 18)
     }

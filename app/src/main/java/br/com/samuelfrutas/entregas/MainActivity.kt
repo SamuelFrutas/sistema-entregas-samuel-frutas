@@ -281,56 +281,90 @@ class MainActivity : Activity() {
         val pendingCount = list.count { !it.realizada }
         val doneCount = list.count { it.realizada }
 
+        // Cabeçalho moderno: marca + status do modo entregador
         val head = LinearLayout(this).apply {
             gravity = Gravity.CENTER_VERTICAL
-            background = rounded(panel, 16f, Color.rgb(42, 91, 124))
-            setPadding(dp(12), dp(7), dp(12), dp(7))
+            background = rounded(panel, 18f, Color.rgb(35, 76, 102))
+            setPadding(dp(14), dp(10), dp(10), dp(10))
         }
-        head.addView(TextView(this).apply {
-            text = "🍎"
-            textSize = 32f
-            gravity = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(dp(42), dp(48))
+        head.addView(icon(R.drawable.ic_truck, 34).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(46), dp(46))
         })
         val logo = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(0, -2, 1f)
+            setPadding(dp(10), 0, 0, 0)
         }
-        logo.addView(txt("SAMUEL", 20f, Color.WHITE, true))
-        logo.addView(txt("FRUTAS", 11f, green, true))
+        logo.addView(txt("SAMUEL FRUTAS", 18f, Color.WHITE, true))
+        logo.addView(txt("MODO ENTREGADOR", 10f, green, true))
         head.addView(logo)
-        head.addView(txt("🚚  MODO\nENTREGADOR", 10f, green, true))
+        head.addView(icon(R.drawable.ic_menu, 22).apply {
+            background = rounded(surface2, 12f, Color.rgb(35, 76, 102))
+            layoutParams = LinearLayout.LayoutParams(dp(42), dp(42))
+            setOnClickListener { menuScreen() }
+        })
         add(head, 0)
 
-        val mode = card("🚚  MODO ENTREGADOR\nFuncionando offline", 14f, Color.rgb(4, 75, 48))
-        mode.background = rounded(Color.rgb(4, 75, 48), 14f, green)
+        val mode = LinearLayout(this).apply {
+            gravity = Gravity.CENTER_VERTICAL
+            background = rounded(Color.rgb(4, 75, 48), 16f, green)
+            setPadding(dp(14), dp(10), dp(14), dp(10))
+        }
+        mode.addView(icon(R.drawable.ic_check_circle, 28))
+        mode.addView(LinearLayout(this@MainActivity).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, -2, 1f)
+            setPadding(dp(10), 0, 0, 0)
+            addView(txt("ONLINE / OFFLINE", 13f, Color.WHITE, true))
+            addView(txt("Pronto para registrar entregas", 11f, Color.rgb(190, 235, 211)))
+        })
         add(mode, 10)
 
-        val grid = LinearLayout(this)
-        val pending = iconTitle(R.drawable.ic_pending, "ENTREGAS PENDENTES", "$pendingCount entregas")
-        pending.background = rounded(panel, 14f, Color.rgb(35, 76, 102))
+        add(section("Resumo de hoje"), 18)
+
+        val stats = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val pending = iconTitle(R.drawable.ic_pending, "PENDENTES", pendingCount.toString())
+        pending.background = rounded(panel, 16f, Color.rgb(35, 76, 102))
         pending.setOnClickListener { pending() }
-        val done = iconTitle(R.drawable.ic_check_circle, "ENTREGAS REALIZADAS", "$doneCount entregas")
-        done.background = rounded(panel, 14f, Color.rgb(35, 76, 102))
+        val done = iconTitle(R.drawable.ic_check_circle, "REALIZADAS", doneCount.toString())
+        done.background = rounded(panel, 16f, Color.rgb(35, 76, 102))
         done.setOnClickListener { completed() }
-        grid.addView(pending, LinearLayout.LayoutParams(0, dp(126), 1f).apply { rightMargin = 5 })
-        grid.addView(done, LinearLayout.LayoutParams(0, dp(126), 1f).apply { leftMargin = 5 })
-        add(grid, 10)
+        stats.addView(pending, LinearLayout.LayoutParams(0, dp(112), 1f).apply { rightMargin = dp(5) })
+        stats.addView(done, LinearLayout.LayoutParams(0, dp(112), 1f).apply { leftMargin = dp(5) })
+        add(stats, 8)
 
-        val newBox = primary("NOVA ENTREGA") { newDelivery() }
-        newBox.textSize = 17f
-        newBox.minHeight = dp(72)
-        add(newBox, 10)
+        val newBox = LinearLayout(this).apply {
+            gravity = Gravity.CENTER
+            background = rounded(green, 16f)
+            setPadding(dp(16), dp(8), dp(16), dp(8))
+            setOnClickListener { newDelivery() }
+        }
+        newBox.addView(icon(R.drawable.ic_add, 28).apply {
+            setColorFilter(Color.BLACK)
+        })
+        newBox.addView(txt("NOVA ENTREGA", 16f, Color.BLACK, true).apply {
+            setPadding(dp(8), dp(4), dp(0), dp(4))
+        })
+        add(newBox, 12)
 
-        val day = iconTitle(R.drawable.ic_pending, "MEU DIA", list.size.toString() + " entregas registradas hoje").apply { background = rounded(panel2, 14f, Color.rgb(35, 76, 102)) }
-        day.setOnClickListener { myDay() }
-        add(day, 10)
+        add(section("Seu dia"), 18)
 
-        val sync = iconTitle(R.drawable.ic_check_circle, "SINCRONIZAÇÃO", "Dados locais prontos para sincronizar quando a internet voltar.")
-        sync.setOnClickListener { syncScreen() }
-        add(sync, 10)
+        val day = iconTitle(R.drawable.ic_pending, "MEU DIA", list.size.toString() + " entregas registradas hoje").apply {
+            background = rounded(panel2, 16f, Color.rgb(35, 76, 102))
+            setOnClickListener { myDay() }
+        }
+        add(day, 8)
 
-        add(iconTitle(R.drawable.ic_truck, "MODO OFFLINE", "O aplicativo continua funcionando sem internet.").apply { background = rounded(panel2, 14f, Color.rgb(35, 76, 102)) }, 10)
+        val sync = iconTitle(R.drawable.ic_check_circle, "SINCRONIZAÇÃO", "Dados locais prontos para sincronizar quando a internet voltar.").apply {
+            background = rounded(panel2, 16f, Color.rgb(35, 76, 102))
+            setOnClickListener { syncScreen() }
+        }
+        add(sync, 8)
+
+        val offline = iconTitle(R.drawable.ic_truck, "MODO OFFLINE", "O aplicativo continua funcionando sem internet.").apply {
+            background = rounded(panel2, 16f, Color.rgb(35, 76, 102))
+        }
+        add(offline, 8)
     }
 
     private fun newDelivery() {

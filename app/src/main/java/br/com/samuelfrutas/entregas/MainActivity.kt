@@ -39,6 +39,7 @@ class MainActivity : Activity() {
         super.onCreate(state)
         db = EntregaDbHelper(this)
         firebaseSync = FirebaseSync(db)
+        firebaseSync.startRealtimeSync()
         home()
     }
 
@@ -999,6 +1000,7 @@ private fun myDay() {
     }
 
     override fun onDestroy() {
+        firebaseSync.stopRealtimeSync()
         db.close()
         super.onDestroy()
     }

@@ -954,8 +954,13 @@ private fun myDay() {
         add(card("Status\n" + firebaseSync.status, 17f), 0)
         add(txt("As entregas são gravadas no aparelho e enviadas ao Firestore quando houver internet.", 14f, muted), 8)
         add(primary("SINCRONIZAR AGORA") {
-            db.listarDia(today).forEach { firebaseSync.sync(it) }
-            toast("Sincronização iniciada.")
+            val itens = db.listarDia(today)
+            if (itens.isEmpty()) {
+                toast("Nenhuma entrega para sincronizar.")
+            } else {
+                toast("Sincronização iniciada.")
+                itens.forEach { firebaseSync.sync(it) }
+            }
             syncScreen()
         }, 14)
         add(btn("←  Voltar") { home() }, 18)

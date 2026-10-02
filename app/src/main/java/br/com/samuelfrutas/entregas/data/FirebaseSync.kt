@@ -5,12 +5,14 @@ import android.os.Looper
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.ListenerRegistration
 
 class FirebaseSync(
     private val dbLocal: EntregaDbHelper
 ) {
     private val auth = FirebaseAuth.getInstance()
     private val firestore = FirebaseFirestore.getInstance()
+    private var realtimeListener: ListenerRegistration? = null
 
     @Volatile var status: String = "AGUARDANDO INTERNET"
         private set
@@ -56,6 +58,58 @@ class FirebaseSync(
                     onDone?.invoke(false)
                 }
         }
+    }
+
+    fun startRealtimeSync() {
+        if (realtimeListener != null) return
+        ensureAuth { ok, authError ->
+            if (!ok) {
+                status = "ERRO FIREBASE: ${authError ?: "autenticação"}"
+                return@ensureAuth
+            }
+            status = "CONECTADO AO FIREBASE"
+            realtimeListener = firestore.collection("entregas")
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        status = "ERRO RECEBIMENTO: " + (error.message?.replace("\n", " ")?.take(140) ?: error.javaClass.simpleName)
+                        return@addSnapshotListener
+                    }
+                    if (snapshot == null) return@addSnapshotListener
+
+                    for (change in snapshot.documentChanges) {
+                        val doc = change.document
+                        val id = doc.id.toLongOrNull() ?: continue
+                        if (change.type.name == "REMOVED") {
+                            dbLocal.excluir(id)
+                            continue
+                        }
+                        val e = EntregaLocal(
+                            id = id,
+                            dia = doc.getString("dia") ?: "",
+                            predio = doc.getString("predio") ?: "",
+                            bloco = doc.getString("bloco") ?: "",
+                            apartamento = doc.getString("apartamento") ?: "",
+                            semEndereco = doc.getBoolean("semEndereco") ?: false,
+                            enderecoReferencia = doc.getString("enderecoReferencia") ?: "",
+                            valorCompraCentavos = doc.getLong("valorCompraCentavos"),
+                            pagamentoInicial = doc.getString("pagamentoInicial") ?: "NAO_INFORMADO",
+                            resultadoPagamento = doc.getString("resultadoPagamento") ?: "",
+                            formaPagamento = doc.getString("formaPagamento") ?: "",
+                            caixinhaCentavos = doc.getLong("caixinhaCentavos") ?: 0L,
+                            observacao = doc.getString("observacao") ?: "",
+                            realizada = doc.getBoolean("realizada") ?: false,
+                            sincronizacao = "SINCRONIZADA"
+                        )
+                        dbLocal.sincronizarDoFirestore(e)
+                    }
+                    status = "SINCRONIZADO"
+                }
+        }
+    }
+
+    fun stopRealtimeSync() {
+        realtimeListener?.remove()
+        realtimeListener = null
     }
 
     fun sync(e: EntregaLocal, onDone: ((Boolean) -> Unit)? = null) {

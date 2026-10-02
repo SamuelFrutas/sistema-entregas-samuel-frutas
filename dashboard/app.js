@@ -78,13 +78,22 @@ async function loadHome(){
     document.querySelector(".stats article:nth-child(3) strong").textContent=done.length;
     document.querySelector(".stats article:nth-child(4) strong").textContent=money(tips);
     const rows=document.querySelector(".rows"); if(rows)rows.innerHTML='<div>Valor por entrega <b>'+money(c.valorEntregaCentavos)+'</b></div><div>Entregas realizadas <b>'+done.length+'</b></div><div>Total a pagar <b>'+money(Number(c.valorEntregaCentavos||0)*done.length)+'</b></div>';
-    renderRecentes(docs);
+    renderRecentes(today);
     const status=document.querySelector(".status"); if(status)status.innerHTML='● Firebase<br><small>Sincronizado em tempo real</small>';
+    const hint=document.querySelector("#todayHint"); if(hint)hint.textContent=today.length===1?"1 entrega registrada":today.length+" entregas registradas";
   },e=>{
     const status=document.querySelector(".status"); if(status)status.innerHTML='● Firebase<br><small>Erro: '+(e.code||"leitura")+'</small>';
     const box=document.querySelector("#recentes"); if(box)box.innerHTML='<div class="empty"><strong>Não foi possível ler as entregas</strong><p>Verifique o login e as regras do Firestore.</p></div>';
   });
 }
-function showHome(){loadHome();}
-document.querySelectorAll("nav button").forEach((b,i)=>{if(i===0||i===1||i===2)b.onclick=showHome;if(i===4)b.onclick=showSettings;});
+function setActive(page){document.querySelectorAll("[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===page));}
+function showHome(){setActive("home");loadHome();}
+document.querySelectorAll("[data-page]").forEach(b=>{
+  b.onclick=()=>{
+    const page=b.dataset.page;
+    if(page==="settings"){setActive("settings");showSettings();return;}
+    setActive(page);loadHome();
+  };
+});
+
 initFirebase();

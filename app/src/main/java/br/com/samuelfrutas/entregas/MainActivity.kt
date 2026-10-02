@@ -57,6 +57,11 @@ class MainActivity : Activity() {
             isFillViewport = true
             addView(root)
         }
+        if (title.isBlank()) {
+            setContentView(scroll)
+            return
+        }
+
         val bar = LinearLayout(this).apply {
             gravity = Gravity.CENTER_VERTICAL
             setPadding(0, dp(4), 0, dp(10))

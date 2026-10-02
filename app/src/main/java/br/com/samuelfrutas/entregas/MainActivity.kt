@@ -513,7 +513,11 @@ class MainActivity : Activity() {
         }
         row.addView(btn("EDITAR") { paymentStep() },
             LinearLayout.LayoutParams(-1, dp(48)).apply { bottomMargin = dp(8) })
-        row.addView(primary("✓  SALVAR ENTREGA") { db.inserir(e); confirmation() },
+        row.addView(primary("✓  SALVAR ENTREGA") {
+                val id = db.inserir(e)
+                firebaseSync.sync(e.copy(id = id))
+                confirmation()
+            },
             LinearLayout.LayoutParams(-1, dp(52)))
         add(row, 14)
     }
@@ -842,6 +846,7 @@ class MainActivity : Activity() {
                 pagamentoInicial = initial
             )
             db.atualizarLocal(updated)
+            firebaseSync.sync(updated)
             pending()
         }, 14)
 
@@ -852,6 +857,7 @@ class MainActivity : Activity() {
                 .setNegativeButton("CANCELAR", null)
                 .setPositiveButton("EXCLUIR") { _, _ ->
                     db.excluir(e.id)
+                    firebaseSync.delete(e.id)
                     pending()
                 }
                 .show()
@@ -899,7 +905,16 @@ class MainActivity : Activity() {
         add(primary("✓  CONFIRMAR ENTREGA") {
             val result = if (paid.isChecked) "PAGO" else "NAO_PAGO"
             val form = if (result == "PAGO") if (cash.isChecked) "DINHEIRO" else "CARTAO" else ""
-            db.atualizarFinal(e.id, result, form, moneyToCents(tip.text.toString()) ?: 0, obs.text.toString())
+            val tipCents = moneyToCents(tip.text.toString()) ?: 0
+            val observation = obs.text.toString()
+            db.atualizarFinal(e.id, result, form, tipCents, observation)
+            firebaseSync.sync(e.copy(
+                resultadoPagamento = result,
+                formaPagamento = form,
+                caixinhaCentavos = tipCents,
+                observacao = observation,
+                realizada = true
+            ))
             confirmation()
         }, 16)
     }
@@ -936,8 +951,13 @@ private fun myDay() {
 
         private fun syncScreen() {
         base("Sincronização")
-        add(card("Status\nDados locais aguardando sincronização central.", 17f), 0)
-        add(txt("Firebase será conectado na etapa de sincronização.", 14f, muted), 8)
+        add(card("Status\n" + firebaseSync.status, 17f), 0)
+        add(txt("As entregas são gravadas no aparelho e enviadas ao Firestore quando houver internet.", 14f, muted), 8)
+        add(primary("SINCRONIZAR AGORA") {
+            db.listarDia(today).forEach { firebaseSync.sync(it) }
+            toast("Sincronização iniciada.")
+            syncScreen()
+        }, 14)
         add(btn("←  Voltar") { home() }, 18)
     }
 

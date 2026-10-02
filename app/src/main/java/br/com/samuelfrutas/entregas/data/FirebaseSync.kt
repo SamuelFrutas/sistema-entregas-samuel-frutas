@@ -16,6 +16,7 @@ class FirebaseSync(
         private set
 
     fun sync(e: EntregaLocal, onDone: ((Boolean) -> Unit)? = null) {
+        status = "VERIFICANDO CONEXÃO..."
         if (e.id == 0L) { status = "ERRO: ID LOCAL INVÁLIDO"; onDone?.invoke(false); return }
         syncAttempt(e, onDone, 0)
     }

@@ -774,7 +774,7 @@ class MainActivity : Activity() {
         val value = field(
             "Valor da compra",
             InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
-        ).apply { setText(centsText(e.valorCompraCentavos).removePrefix("R$ ").trim()) }
+        ).apply { setText(e.valorCompraCentavos?.let { String.format(Locale.US, "%.2f", it / 100.0) } ?: "") }
         add(value, 8)
 
         fun refreshPayment() {
@@ -843,7 +843,7 @@ class MainActivity : Activity() {
         }, 14)
 
         add(danger("EXCLUIR ENTREGA") {
-            AlertDialog.Builder(this)
+            android.app.AlertDialog.Builder(this)
                 .setTitle("Excluir entrega?")
                 .setMessage("Essa entrega será removida do aparelho e não poderá ser recuperada.")
                 .setNegativeButton("CANCELAR", null)

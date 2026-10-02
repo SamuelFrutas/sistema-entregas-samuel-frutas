@@ -2,6 +2,7 @@ const KEY="sf_entregador_config";
 let db=null;
 let auth=null;
 let currentUser=null;
+let entregasUnsub=null;
 
 function money(c){return (Number(c||0)/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});}
 function parseMoney(v){const s=String(v||"").trim().replace(/R\$\s?/g,"").replace(/\./g,"").replace(",", ".");const n=Number(s);return Number.isFinite(n)&&n>=0?Math.round(n*100):null;}
@@ -91,26 +92,34 @@ async function showSettings(){
 
 function todayKey(){
   const d=new Date();
-  return d.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric"});
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,"0");
+  const day=String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
 }
 
 async function loadHome(){
   if(!document.querySelector("#content")) return;
   document.querySelector("#pageTitle").textContent="Visão geral";
   try{
-    const snap=await db.collection("entregas").get();
-    const docs=snap.docs.map(d=>Object.assign({id:d.id},d.data()));
-    const today=docs.filter(e=>e.dia===todayKey());
-    const pending=today.filter(e=>!e.realizada);
-    const done=today.filter(e=>!!e.realizada);
-    const tips=done.reduce((s,e)=>s+Number(e.caixinhaCentavos||0),0);
-    const c=await getConfig();
-    document.querySelector(".stats article:nth-child(1) strong").textContent=today.length;
-    document.querySelector(".stats article:nth-child(2) strong").textContent=pending.length;
-    document.querySelector(".stats article:nth-child(3) strong").textContent=done.length;
-    document.querySelector(".stats article:nth-child(4) strong").textContent=money(tips);
-    const rows=document.querySelector(".rows");
-    if(rows) rows.innerHTML='<div>Valor por entrega <b>'+money(c.valorEntregaCentavos)+'</b></div><div>Entregas realizadas <b>'+done.length+'</b></div><div>Total a pagar <b>'+money(Number(c.valorEntregaCentavos||0)*done.length)+'</b></div>';
+    if(entregasUnsub) entregasUnsub();
+    entregasUnsub=db.collection("entregas").onSnapshot(async snap=>{
+      const docs=snap.docs.map(d=>Object.assign({id:d.id},d.data()));
+      const today=docs.filter(e=>e.dia===todayKey());
+      const pending=today.filter(e=>!e.realizada);
+      const done=today.filter(e=>!!e.realizada);
+      const tips=done.reduce((s,e)=>s+Number(e.caixinhaCentavos||0),0);
+      const c=await getConfig();
+      document.querySelector(".stats article:nth-child(1) strong").textContent=today.length;
+      document.querySelector(".stats article:nth-child(2) strong").textContent=pending.length;
+      document.querySelector(".stats article:nth-child(3) strong").textContent=done.length;
+      document.querySelector(".stats article:nth-child(4) strong").textContent=money(tips);
+      const rows=document.querySelector(".rows");
+      if(rows) rows.innerHTML='<div>Valor por entrega <b>'+money(c.valorEntregaCentavos)+'</b></div><div>Entregas realizadas <b>'+done.length+'</b></div><div>Total a pagar <b>'+money(Number(c.valorEntregaCentavos||0)*done.length)+'</b></div>';
+    }, e=>{
+      const status=document.querySelector(".status");
+      if(status) status.innerHTML='● Firebase<br><small>Erro de leitura</small>';
+    });
   }catch(e){
     const status=document.querySelector(".status");
     if(status) status.innerHTML='● Firebase<br><small>Conectado, aguardando regras</small>';

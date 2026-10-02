@@ -668,6 +668,18 @@ class MainActivity : Activity() {
             setPadding(dp(5), dp(8), dp(9), dp(8))
             layoutParams = LinearLayout.LayoutParams(dp(122), -2)
         }
+        val edit = TextView(this).apply {
+            text = "EDITAR"
+            textSize = 10f
+            setTextColor(muted)
+            setTypeface(null, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            isSingleLine = true
+            background = rounded(Color.rgb(11, 38, 56), 9f, Color.rgb(35, 76, 102))
+            minHeight = dp(30)
+            setOnClickListener { editPending(e) }
+        }
+        actions.addView(edit, LinearLayout.LayoutParams(-1, dp(30)).apply { bottomMargin = dp(6) })
         actions.addView(statusChip(labelInitial(e.pagamentoInicial),
             if (e.pagamentoInicial == "NAO_PAGO") Color.rgb(225, 35, 52)
             else if (e.pagamentoInicial == "PAGO_ADIANTADO") Color.rgb(30, 122, 225)
@@ -726,6 +738,62 @@ class MainActivity : Activity() {
         val detail = if (e.formaPagamento.isNotBlank()) result + " • " + e.formaPagamento else result
         box.addView(txt(detail, 12f, if (result == "Pago") green else Color.rgb(240, 70, 75), true))
         return box
+    }
+
+    private fun editPending(e: EntregaLocal) {
+        base("Editar Entrega", { pending() })
+        add(section("Corrigir dados da entrega"), 12)
+
+        val pred = field("Prédio *", InputType.TYPE_CLASS_NUMBER).apply { setText(e.predio) }
+        val bloco = field("Bloco", InputType.TYPE_CLASS_TEXT).apply { setText(e.bloco) }
+        val ap = field("Apartamento *", InputType.TYPE_CLASS_NUMBER).apply { setText(e.apartamento) }
+        val ref = field("Endereço / referência *").apply { setText(e.enderecoReferencia) }
+        val noAddress = check("Entrega sem endereço").apply { isChecked = e.semEndereco }
+        val semBloco = check("Prédio não possui bloco").apply { isChecked = e.bloco.isBlank() && !e.semEndereco }
+
+        add(pred); add(bloco, 6); add(ap, 6)
+        add(semBloco, 4); add(noAddress, 4); add(ref, 6)
+
+        fun refresh() {
+            val no = noAddress.isChecked
+            pred.isEnabled = !no
+            bloco.isEnabled = !no && !semBloco.isChecked
+            ap.isEnabled = !no
+            semBloco.isEnabled = !no
+            ref.isEnabled = no
+        }
+        semBloco.setOnCheckedChangeListener { _, checked ->
+            if (checked) bloco.setText("")
+            refresh()
+        }
+        noAddress.setOnCheckedChangeListener { _, _ -> refresh() }
+        refresh()
+
+        add(primary("SALVAR ALTERAÇÕES") {
+            if (!noAddress.isChecked) {
+                if (pred.text.isBlank() || ap.text.isBlank()) {
+                    toast("Preencha prédio e apartamento.")
+                    return@primary
+                }
+                if (!semBloco.isChecked && bloco.text.isBlank()) {
+                    toast("Informe o bloco ou marque 'Prédio não possui bloco'.")
+                    return@primary
+                }
+            } else if (ref.text.isBlank()) {
+                toast("Informe o endereço/referência.")
+                return@primary
+            }
+
+            val updated = e.copy(
+                predio = pred.text.toString(),
+                bloco = if (semBloco.isChecked) "" else bloco.text.toString(),
+                apartamento = ap.text.toString(),
+                semEndereco = noAddress.isChecked,
+                enderecoReferencia = ref.text.toString()
+            )
+            db.atualizarLocal(updated)
+            pending()
+        }, 14)
     }
 
     private fun finish(e: EntregaLocal) {

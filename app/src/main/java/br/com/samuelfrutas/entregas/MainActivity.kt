@@ -754,6 +754,40 @@ class MainActivity : Activity() {
         add(pred); add(bloco, 6); add(ap, 6)
         add(semBloco, 4); add(noAddress, 4); add(ref, 6)
 
+        add(section("Pagamento e valor"), 14)
+        val paymentGroup = RadioGroup(this).apply {
+            orientation = RadioGroup.VERTICAL
+            background = rounded(panel, 14f, Color.rgb(35, 76, 102))
+            setPadding(dp(8), dp(4), dp(8), dp(4))
+        }
+        val paid = radio("✓  Pago adiantado")
+        val unpaid = radio("●  Não pago")
+        val unknown = radio("○  Não informado")
+        paymentGroup.addView(paid); paymentGroup.addView(unpaid); paymentGroup.addView(unknown)
+        when (e.pagamentoInicial) {
+            "PAGO_ADIANTADO" -> paid.isChecked = true
+            "NAO_PAGO" -> unpaid.isChecked = true
+            else -> unknown.isChecked = true
+        }
+        add(paymentGroup, 6)
+
+        val value = field(
+            "Valor da compra",
+            InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL
+        ).apply { setText(centsText(e.valorCompraCentavos).removePrefix("R$ ").trim()) }
+        add(value, 8)
+
+        fun refreshPayment() {
+            value.isEnabled = !paid.isChecked
+            value.hint = when {
+                paid.isChecked -> "Não necessário"
+                unpaid.isChecked -> "Valor da compra *"
+                else -> "Valor da compra (opcional)"
+            }
+        }
+        paymentGroup.setOnCheckedChangeListener { _, _ -> refreshPayment() }
+        refreshPayment()
+
         fun refresh() {
             val no = noAddress.isChecked
             pred.isEnabled = !no
@@ -784,16 +818,41 @@ class MainActivity : Activity() {
                 return@primary
             }
 
+            val initial = when (paymentGroup.checkedRadioButtonId) {
+                paid.id -> "PAGO_ADIANTADO"
+                unpaid.id -> "NAO_PAGO"
+                else -> "NAO_INFORMADO"
+            }
+            val cents = if (initial == "PAGO_ADIANTADO") null else moneyToCents(value.text.toString())
+            if (initial == "NAO_PAGO" && cents == null) {
+                toast("Para 'Não pago', informe o valor da compra.")
+                return@primary
+            }
+
             val updated = e.copy(
                 predio = pred.text.toString(),
                 bloco = if (semBloco.isChecked) "" else bloco.text.toString(),
                 apartamento = ap.text.toString(),
                 semEndereco = noAddress.isChecked,
-                enderecoReferencia = ref.text.toString()
+                enderecoReferencia = ref.text.toString(),
+                valorCompraCentavos = cents,
+                pagamentoInicial = initial
             )
             db.atualizarLocal(updated)
             pending()
         }, 14)
+
+        add(danger("EXCLUIR ENTREGA") {
+            AlertDialog.Builder(this)
+                .setTitle("Excluir entrega?")
+                .setMessage("Essa entrega será removida do aparelho e não poderá ser recuperada.")
+                .setNegativeButton("CANCELAR", null)
+                .setPositiveButton("EXCLUIR") { _, _ ->
+                    db.excluir(e.id)
+                    pending()
+                }
+                .show()
+        }, 10)
     }
 
     private fun finish(e: EntregaLocal) {

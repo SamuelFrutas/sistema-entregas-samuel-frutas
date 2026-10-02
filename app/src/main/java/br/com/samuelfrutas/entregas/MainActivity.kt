@@ -14,9 +14,11 @@ import java.text.SimpleDateFormat
 import java.util.*
 import br.com.samuelfrutas.entregas.data.EntregaDbHelper
 import br.com.samuelfrutas.entregas.data.EntregaLocal
+import br.com.samuelfrutas.entregas.data.FirebaseSync
 
 class MainActivity : Activity() {
     private lateinit var db: EntregaDbHelper
+    private lateinit var firebaseSync: FirebaseSync
     private lateinit var root: LinearLayout
 
     private val green = Color.rgb(24, 245, 126)
@@ -36,6 +38,7 @@ class MainActivity : Activity() {
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
         db = EntregaDbHelper(this)
+        firebaseSync = FirebaseSync(db)
         home()
     }
 

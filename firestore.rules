@@ -18,7 +18,7 @@ service cloud.firestore {
     }
 
     match /entregas/{entregaId} {
-      allow read: if dashboardUser();
+      allow read: if dashboardUser() || deliveryApp();
       allow create, update, delete: if dashboardUser() || deliveryApp();
     }
 

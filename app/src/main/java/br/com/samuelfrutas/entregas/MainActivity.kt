@@ -470,7 +470,7 @@ class MainActivity : Activity() {
         val paid = radio("✓  Pago adiantado\n     Cliente já pagou. Não precisa informar o valor.")
         val unpaid = radio("●  Não pago\n     Cliente vai pagar na entrega. É obrigatório informar o valor.")
         val unknown = radio("○  Não informado\n     Não tenho o valor da entrega.")
-        group.addView(paid); group.addView(unpaid); group.addView(unknown); unknown.isChecked = true
+        group.addView(paid); group.addView(unpaid); group.addView(unknown); unpaid.isChecked = true
         add(group)
 
         add(section("Valor da compra"), 14)

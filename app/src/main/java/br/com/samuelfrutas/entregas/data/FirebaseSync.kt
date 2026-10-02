@@ -15,6 +15,49 @@ class FirebaseSync(
     @Volatile var status: String = "AGUARDANDO INTERNET"
         private set
 
+    fun pull(e: EntregaLocal, onDone: ((Boolean) -> Unit)? = null) {
+        if (e.id == 0L) { status = "ERRO: ID LOCAL INVÁLIDO"; onDone?.invoke(false); return }
+        ensureAuth { ok, authError ->
+            if (!ok) {
+                status = "ERRO FIREBASE: " + (authError ?: "autenticação")
+                onDone?.invoke(false)
+                return@ensureAuth
+            }
+            status = "RECEBENDO ALTERAÇÕES..."
+            firestore.collection("entregas").document(e.id.toString()).get()
+                .addOnSuccessListener { snap ->
+                    if (!snap.exists()) {
+                        status = "NÃO ENCONTRADO NO FIREBASE"
+                        onDone?.invoke(false)
+                        return@addOnSuccessListener
+                    }
+                    val atualizado = e.copy(
+                        dia = snap.getString("dia") ?: e.dia,
+                        predio = snap.getString("predio") ?: e.predio,
+                        bloco = snap.getString("bloco") ?: e.bloco,
+                        apartamento = snap.getString("apartamento") ?: e.apartamento,
+                        semEndereco = snap.getBoolean("semEndereco") ?: e.semEndereco,
+                        enderecoReferencia = snap.getString("enderecoReferencia") ?: e.enderecoReferencia,
+                        valorCompraCentavos = snap.getLong("valorCompraCentavos") ?: e.valorCompraCentavos,
+                        pagamentoInicial = snap.getString("pagamentoInicial") ?: e.pagamentoInicial,
+                        resultadoPagamento = snap.getString("resultadoPagamento") ?: e.resultadoPagamento,
+                        formaPagamento = snap.getString("formaPagamento") ?: e.formaPagamento,
+                        caixinhaCentavos = snap.getLong("caixinhaCentavos") ?: e.caixinhaCentavos,
+                        observacao = snap.getString("observacao") ?: e.observacao,
+                        realizada = snap.getBoolean("realizada") ?: e.realizada,
+                        sincronizacao = "SINCRONIZADA"
+                    )
+                    dbLocal.substituirDoServidor(atualizado)
+                    status = "RECEBIDO DO FIREBASE"
+                    onDone?.invoke(true)
+                }
+                .addOnFailureListener { ex ->
+                    status = "ERRO AO RECEBER: " + (ex.message?.replace("\n", " ")?.take(140) ?: ex.javaClass.simpleName)
+                    onDone?.invoke(false)
+                }
+        }
+    }
+
     fun sync(e: EntregaLocal, onDone: ((Boolean) -> Unit)? = null) {
         status = "VERIFICANDO CONEXÃO..."
         if (e.id == 0L) { status = "ERRO: ID LOCAL INVÁLIDO"; onDone?.invoke(false); return }

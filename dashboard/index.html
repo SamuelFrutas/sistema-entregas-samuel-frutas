@@ -1,4 +1,52 @@
 <!doctype html>
 <html lang="pt-BR">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Samuel Frutas — Entregas</title><link rel="stylesheet" href="./styles.css"></head>
-<body><aside><div class="logo">SF</div><h2>Samuel Frutas</h2><small>Sistema de Entregas</small><nav><button>⌂ Início</button><button>▤ Entregas</button><button>✓ Realizadas</button><button>R$ Financeiro</button><button>⚙ Configurações</button></nav><div class="status">● Firebase<br><small>Aguardando conexão</small></div></aside><main><header><div><small>PAINEL DO RESPONSÁVEL</small><h1 id="pageTitle">Visão geral</h1></div><b>● Sincronização</b></header><section id="content"><div class="hero"><div><small>HOJE</small><h2>Controle das entregas</h2><p>Acompanhe o que foi registrado pelo entregador no APK.</p></div><strong class="hero-icon">▣</strong></div><div class="stats"><article><small>ENTREGAS HOJE</small><strong>0</strong><span>Nenhuma registrada</span></article><article><small>PENDENTES</small><strong>0</strong><span>Aguardando conclusão</span></article><article><small>REALIZADAS</small><strong>0</strong><span>Concluídas hoje</span></article><article><small>CAIXINHA</small><strong>R$ 0,00</strong><span>Hoje</span></article></div><div class="columns"><article class="panel"><small>ACOMPANHAMENTO</small><h3>Entregas recentes</h3><div id="recentes" class="empty"><b>▤</b><strong>Nenhuma entrega sincronizada</strong><p>Quando o entregador registrar uma entrega no APK, ela aparecerá aqui.</p></div></article><article class="panel"><small>ENTREGADOR</small><h3>Resumo do dia</h3><div class="rows"><div>Valor por entrega <b>R$ 0,00</b></div><div>Entregas realizadas <b>0</b></div><div>Total a pagar <b>R$ 0,00</b></div></div></article></div></section></main><script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore-compat.js"></script><script src="./firebase-config.js"></script><script src="./app.js"></script></body></html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#03101a"><title>Samuel Frutas — Entregas</title><link rel="stylesheet" href="./styles.css"></head>
+<body>
+<aside>
+  <div class="brand"><div class="logo">SF</div><div><h2>Samuel Frutas</h2><small>Sistema de Entregas</small></div></div>
+  <nav class="side-nav">
+    <button data-page="home">⌂ <span>Início</span></button>
+    <button data-page="deliveries">▤ <span>Entregas</span></button>
+    <button data-page="done">✓ <span>Realizadas</span></button>
+    <button data-page="finance">R$ <span>Financeiro</span></button>
+    <button data-page="settings">⚙ <span>Configurações</span></button>
+  </nav>
+  <div class="status">● Firebase<br><small>Aguardando conexão</small></div>
+</aside>
+<main>
+  <header>
+    <div><small>PAINEL DO RESPONSÁVEL</small><h1 id="pageTitle">Visão geral</h1></div>
+    <div class="sync-badge"><i></i> Sincronizado</div>
+  </header>
+  <section id="content">
+    <div class="hero">
+      <div><small>HOJE</small><h2>Controle das entregas</h2><p>Acompanhe em tempo real o que foi registrado pelo entregador no APK.</p></div>
+      <strong class="hero-icon">▣</strong>
+    </div>
+    <div class="stats">
+      <article><small>ENTREGAS HOJE</small><strong>0</strong><span id="todayHint">Nenhuma registrada</span></article>
+      <article><small>PENDENTES</small><strong>0</strong><span>Aguardando conclusão</span></article>
+      <article><small>REALIZADAS</small><strong>0</strong><span>Concluídas hoje</span></article>
+      <article><small>CAIXINHA</small><strong>R$ 0,00</strong><span>Hoje</span></article>
+    </div>
+    <div class="columns">
+      <article class="panel">
+        <div class="panel-head"><div><small>ACOMPANHAMENTO</small><h3>Entregas recentes</h3></div><span class="live-dot">AO VIVO</span></div>
+        <div id="recentes" class="delivery-list"><div class="empty"><b>▤</b><strong>Nenhuma entrega sincronizada</strong><p>Quando o entregador registrar uma entrega no APK, ela aparecerá aqui.</p></div></div>
+      </article>
+      <article class="panel">
+        <small>ENTREGADOR</small><h3>Resumo do dia</h3>
+        <div class="rows"><div>Valor por entrega <b>R$ 0,00</b></div><div>Entregas realizadas <b>0</b></div><div>Total a pagar <b>R$ 0,00</b></div></div>
+      </article>
+    </div>
+  </section>
+</main>
+<nav class="mobile-nav">
+  <button data-page="home">⌂<span>Início</span></button>
+  <button data-page="deliveries">▤<span>Entregas</span></button>
+  <button data-page="done">✓<span>Realizadas</span></button>
+  <button data-page="finance">R$<span>Financeiro</span></button>
+  <button data-page="settings">⚙<span>Config.</span></button>
+</nav>
+<script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore-compat.js"></script><script src="./firebase-config.js"></script><script src="./app.js"></script>
+</body></html>

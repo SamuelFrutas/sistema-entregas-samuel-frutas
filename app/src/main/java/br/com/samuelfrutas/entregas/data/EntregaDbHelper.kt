@@ -87,6 +87,32 @@ class EntregaDbHelper(context: Context) : SQLiteOpenHelper(context, "entregas.db
         writableDatabase.delete("entregas", "id=?", arrayOf(id.toString()))
     }
 
+    fun sincronizarDoFirestore(e: EntregaLocal) {
+        val v = ContentValues().apply {
+            put("dia", e.dia)
+            put("predio", e.predio)
+            put("bloco", e.bloco)
+            put("apartamento", e.apartamento)
+            put("sem_endereco", if (e.semEndereco) 1 else 0)
+            put("endereco_referencia", e.enderecoReferencia)
+            if (e.valorCompraCentavos == null) putNull("valor_compra_centavos")
+            else put("valor_compra_centavos", e.valorCompraCentavos)
+            put("pagamento_inicial", e.pagamentoInicial)
+            put("resultado_pagamento", e.resultadoPagamento)
+            put("forma_pagamento", e.formaPagamento)
+            put("caixinha_centavos", e.caixinhaCentavos)
+            put("observacao", e.observacao)
+            put("realizada", if (e.realizada) 1 else 0)
+            put("sincronizacao", "SINCRONIZADA")
+        }
+        val updated = writableDatabase.update("entregas", v, "id=?", arrayOf(e.id.toString()))
+        if (updated == 0) {
+            v.put("id", e.id)
+            writableDatabase.insertOrThrow("entregas", null, v)
+        }
+    }
+
+
     fun atualizarFinal(id:Long,resultado:String,forma:String,caixinha:Long,observacao:String){
         val v=ContentValues().apply{put("resultado_pagamento",resultado);put("forma_pagamento",forma);put("caixinha_centavos",caixinha);put("observacao",observacao);put("realizada",1)}
         writableDatabase.update("entregas",v,"id=?",arrayOf(id.toString()))

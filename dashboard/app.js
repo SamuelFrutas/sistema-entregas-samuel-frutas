@@ -129,7 +129,7 @@ function openNewDelivery(){
     const valor=parseMoney(document.getElementById("newValor").value);
     const msg=document.getElementById("newMsg");
     const data={dia:todayKey(),predio:document.getElementById("newPredio").value.trim(),bloco:document.getElementById("newBloco").value.trim(),apartamento:document.getElementById("newApto").value.trim(),semEndereco:document.getElementById("newSemEndereco").checked,enderecoReferencia:document.getElementById("newReferencia").value.trim(),valorCompraCentavos:valor,pagamentoInicial:document.getElementById("newPagamento").value,resultadoPagamento:"",formaPagamento:"",caixinhaCentavos:0,observacao:"",realizada:false,sincronizacao:"SINCRONIZADA"};
-    try{const id=String(Date.now());await db.collection("entregas").doc(id).set({...data,id:Number(id),atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()});overlay.remove();}
+    try{const snap=await db.collection("entregas").get();const ids=snap.docs.map(d=>Number(d.id)).filter(n=>Number.isInteger(n)&&n>0&&n<1000000);const id=String((ids.length?Math.max(...ids):0)+1);await db.collection("entregas").doc(id).set({...data,id:Number(id),atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()});overlay.remove();}
     catch(err){msg.textContent="Não foi possível adicionar.";msg.className="save-msg error";}
   };
 }

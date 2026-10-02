@@ -7,7 +7,7 @@ let currentDocs=[];
 let googleContactsToken=null;
 let googleContactsCache=[];
 let googleContactsTokenClient=null;
-const GOOGLE_CONTACTS_CLIENT_ID = "";
+const GOOGLE_CONTACTS_CLIENT_ID = window.FIREBASE_CONFIG?.googleContactsClientId || "";
 const GOOGLE_CONTACTS_SCOPE = "https://www.googleapis.com/auth/contacts.readonly";
 
 function normalizeAddressKey(value){return String(value||"").toUpperCase().replace(/\s+/g,"").replace(/-/g,"/");}

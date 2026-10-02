@@ -537,7 +537,14 @@ class MainActivity : Activity() {
             layoutParams = LinearLayout.LayoutParams(0, -2, 1f)
             setPadding(dp(12), dp(9), dp(8), dp(9))
         }
-        info.addView(txt("⌖  " + location(e), 17f, Color.WHITE, true))
+        val compactLocation = if (e.semEndereco) {
+            e.enderecoReferencia
+        } else {
+            listOf(e.predio, e.bloco, e.apartamento)
+                .filter { it.isNotBlank() }
+                .joinToString(" • ")
+        }
+        info.addView(txt("⌖  " + compactLocation, 17f, Color.WHITE, true))
         info.addView(txt("🛒  " + centsText(e.valorCompraCentavos).ifBlank { "Valor não informado" }, 15f, Color.WHITE, true))
         body.addView(info)
 
@@ -545,14 +552,24 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
             setPadding(dp(6), dp(8), dp(10), dp(8))
-            layoutParams = LinearLayout.LayoutParams(dp(142), -2)
+            layoutParams = LinearLayout.LayoutParams(dp(132), -2)
         }
         actions.addView(statusChip(labelInitial(e.pagamentoInicial),
             if (e.pagamentoInicial == "NAO_PAGO") Color.rgb(225, 35, 52)
             else if (e.pagamentoInicial == "PAGO_ADIANTADO") Color.rgb(30, 122, 225)
             else Color.rgb(205, 130, 20)))
-        actions.addView(primary("ABRIR ENTREGA   →") { finish(e) },
-            LinearLayout.LayoutParams(-1, dp(48)).apply { topMargin = dp(8) })
+        actions.addView(TextView(this).apply {
+            text = "ABRIR ENTREGA  →"
+            textSize = 12.5f
+            setTextColor(Color.BLACK)
+            setTypeface(null, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            isSingleLine = true
+            setPadding(dp(4), dp(8), dp(4), dp(8))
+            background = rounded(green, 14f)
+            minHeight = dp(46)
+            setOnClickListener { finish(e) }
+        }, LinearLayout.LayoutParams(-1, dp(46)).apply { topMargin = dp(8) })
         body.addView(actions)
 
         box.addView(body)
@@ -649,9 +666,17 @@ private fun myDay() {
         val done = list.count { it.realizada }
         val pendingCount = list.count { !it.realizada }
         val tips = list.filter { it.realizada }.sumOf { it.caixinhaCentavos }
-        val values = list.filter { it.realizada && it.valorCompraCentavos != null }.sumOf { it.valorCompraCentavos ?: 0 }
+        val valorPorEntrega = getSharedPreferences("entregador_config", MODE_PRIVATE)
+            .getLong("valor_entrega_entregador_centavos", 0L)
+        val ganhoDoDia = valorPorEntrega * list.size
+        val ganhoText = if (valorPorEntrega > 0L) {
+            centsText(ganhoDoDia)
+        } else {
+            "Valor por entrega não configurado"
+        }
         add(card("✓   " + done + "\nEntregas realizadas", 18f, Color.rgb(6, 60, 95)), 8)
-        add(card("◉   " + centsText(values) + "\nValor das compras registradas", 17f, Color.rgb(66, 22, 105)), 8)
+        add(card("🚚   " + ganhoText + "\nValor do entregador no dia\n" +
+            (if (valorPorEntrega > 0L) centsText(valorPorEntrega) + " × " + list.size + " entregas" else "Configure no dashboard web"), 17f, Color.rgb(66, 22, 105)), 8)
         add(card("🎁   " + centsText(tips) + "\nCaixinhas recebidas", 17f, Color.rgb(73, 57, 3)), 8)
         add(card("🚚   " + pendingCount + "\nEntregas ainda pendentes", 17f, Color.rgb(5, 72, 48)), 8)
         add(btn("☷  VER ENTREGAS REALIZADAS") { completed() }, 14)

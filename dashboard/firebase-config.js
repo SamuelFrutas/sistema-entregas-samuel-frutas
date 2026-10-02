@@ -1,10 +1,9 @@
-// Preencha com o Firebase Web App do projeto Samuel Frutas.
-// Estes dados são destinados ao cliente web; não coloque chaves privadas aqui.
+// Configuração pública do Firebase Web App do Dashboard.
 window.FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+  apiKey: "AIzaSyAniT2jFCHtCXfKVmBuLN2rVXMLlMQzAJI",
+  authDomain: "sistema-de-entregas-bb409.firebaseapp.com",
+  projectId: "sistema-de-entregas-bb409",
+  storageBucket: "sistema-de-entregas-bb409.firebasestorage.app",
+  messagingSenderId: "751451086790",
+  appId: "1:751451086790:web:42bcb80f26758f04d95cc7"
 };

@@ -67,7 +67,7 @@ function renderRecentes(docs){
   const box=document.querySelector("#recentes");if(!box)return;
   if(!docs.length){box.innerHTML=renderEmpty("Nenhuma entrega sincronizada");return;}
   const sorted=[...docs].sort((a,b)=>String(b.dia||"").localeCompare(String(a.dia||""))).slice(0,20);
-  box.innerHTML=sorted.map(e=>'<div class="delivery-row"><div><strong>'+formatEndereco(e)+'</strong><small>'+String(e.dia||"—")+' • '+(e.realizada?"REALIZADA":"PENDENTE")+'</small></div><b>'+(e.valorCompraCentavos==null?"Valor não informado":money(e.valorCompraCentavos))+'</b></div>').join("");
+  box.innerHTML=sorted.map(e=>'<div class="delivery-row"><div><strong>'+esc(formatEndereco(e))+'</strong><small>'+esc(String(e.dia||"—")+" • "+(e.realizada?"REALIZADA":"PENDENTE"))+'</small></div><div class="row-end"><b>'+(e.valorCompraCentavos==null?"Valor não informado":money(e.valorCompraCentavos))+'</b>'+deliveryActions(e)+'</div></div>').join("");
 }
 
 function renderHomeData(){
@@ -88,6 +88,52 @@ function showHome(){
   renderHomeData();
 }
 
+function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]));}
+function openDelivery(id){
+  const e=currentDocs.find(x=>x.id===id); if(!e)return;
+  const overlay=document.createElement("div"); overlay.className="modal-overlay"; overlay.id="deliveryModal";
+  overlay.innerHTML='<div class="modal-card"><div class="modal-head"><div><small>ENTREGA</small><h2>'+esc(formatEndereco(e))+'</h2></div><button class="modal-close" id="closeDelivery">×</button></div>'+
+    '<div class="form-grid"><label>Prédio<input id="editPredio" value="'+esc(e.predio||"")+'"></label><label>Bloco<input id="editBloco" value="'+esc(e.bloco||"")+'"></label><label>Apartamento<input id="editApto" value="'+esc(e.apartamento||"")+'"></label><label>Valor da compra<input id="editValor" inputmode="decimal" value="'+(e.valorCompraCentavos==null?"":(Number(e.valorCompraCentavos)/100).toLocaleString("pt-BR",{minimumFractionDigits:2}))+'"></label></div>'+
+    '<label class="check-line"><input id="editSemEndereco" type="checkbox" '+(e.semEndereco?"checked":"")+'> Entrega sem endereço</label>'+
+    '<label class="full-field">Endereço / referência<textarea id="editReferencia">'+esc(e.enderecoReferencia||"")+'</textarea></label>'+
+    '<label class="full-field">Pagamento inicial<select id="editPagamento"><option value="PAGO_ADIANTADO">Pago adiantado</option><option value="NAO_PAGO">Não pago</option><option value="NAO_INFORMADO">Não informado</option></select></label>'+
+    '<div class="modal-actions"><button class="danger" id="deleteDelivery">EXCLUIR ENTREGA</button><button class="primary" id="saveDelivery">SALVAR ALTERAÇÕES</button></div><div id="editMsg" class="save-msg"></div></div>';
+  document.body.appendChild(overlay);
+  document.getElementById("editPagamento").value=e.pagamentoInicial||"NAO_INFORMADO";
+  document.getElementById("closeDelivery").onclick=()=>overlay.remove();
+  document.getElementById("saveDelivery").onclick=async()=>{
+    const valor=parseMoney(document.getElementById("editValor").value);
+    const updated={...e,predio:document.getElementById("editPredio").value.trim(),bloco:document.getElementById("editBloco").value.trim(),apartamento:document.getElementById("editApto").value.trim(),semEndereco:document.getElementById("editSemEndereco").checked,enderecoReferencia:document.getElementById("editReferencia").value.trim(),valorCompraCentavos:valor,pagamentoInicial:document.getElementById("editPagamento").value};
+    const msg=document.getElementById("editMsg");
+    try{await db.collection("entregas").doc(e.id).update(updated);msg.textContent="Alterações salvas.";msg.className="save-msg ok";setTimeout(()=>overlay.remove(),500);}
+    catch(err){msg.textContent="Não foi possível salvar.";msg.className="save-msg error";}
+  };
+  document.getElementById("deleteDelivery").onclick=async()=>{
+    if(!confirm("Excluir esta entrega? Essa ação não poderá ser desfeita."))return;
+    try{await db.collection("entregas").doc(e.id).delete();overlay.remove();}
+    catch(err){const msg=document.getElementById("editMsg");msg.textContent="Não foi possível excluir.";msg.className="save-msg error";}
+  };
+}
+function openNewDelivery(){
+  const overlay=document.createElement("div"); overlay.className="modal-overlay"; overlay.id="deliveryModal";
+  overlay.innerHTML='<div class="modal-card"><div class="modal-head"><div><small>NOVA ENTREGA</small><h2>Registrar entrega</h2></div><button class="modal-close" id="closeDelivery">×</button></div>'+
+    '<div class="form-grid"><label>Prédio<input id="newPredio"></label><label>Bloco<input id="newBloco"></label><label>Apartamento<input id="newApto"></label><label>Valor da compra<input id="newValor" inputmode="decimal" placeholder="0,00"></label></div>'+
+    '<label class="check-line"><input id="newSemEndereco" type="checkbox"> Entrega sem endereço</label>'+
+    '<label class="full-field">Endereço / referência<textarea id="newReferencia"></textarea></label>'+
+    '<label class="full-field">Pagamento inicial<select id="newPagamento"><option value="PAGO_ADIANTADO">Pago adiantado</option><option value="NAO_PAGO">Não pago</option><option value="NAO_INFORMADO">Não informado</option></select></label>'+
+    '<div class="modal-actions"><button class="modal-secondary" id="cancelNew">CANCELAR</button><button class="primary" id="createDelivery">ADICIONAR ENTREGA</button></div><div id="newMsg" class="save-msg"></div></div>';
+  document.body.appendChild(overlay);
+  document.getElementById("closeDelivery").onclick=()=>overlay.remove();
+  document.getElementById("cancelNew").onclick=()=>overlay.remove();
+  document.getElementById("createDelivery").onclick=async()=>{
+    const valor=parseMoney(document.getElementById("newValor").value);
+    const msg=document.getElementById("newMsg");
+    const data={dia:todayKey(),predio:document.getElementById("newPredio").value.trim(),bloco:document.getElementById("newBloco").value.trim(),apartamento:document.getElementById("newApto").value.trim(),semEndereco:document.getElementById("newSemEndereco").checked,enderecoReferencia:document.getElementById("newReferencia").value.trim(),valorCompraCentavos:valor,pagamentoInicial:document.getElementById("newPagamento").value,resultadoPagamento:"",formaPagamento:"",caixinhaCentavos:0,observacao:"",realizada:false,sincronizacao:"SINCRONIZADA"};
+    try{await db.collection("entregas").add({...data,atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()});overlay.remove();}
+    catch(err){msg.textContent="Não foi possível adicionar.";msg.className="save-msg error";}
+  };
+}
+function deliveryActions(e){return '<button class="row-action" onclick="openDelivery(\''+esc(e.id)+'\')">EDITAR</button>';}
 function renderList(type){
   const today=currentDocs.filter(e=>e.dia===todayKey());
   const docs=type==="pending"?today.filter(e=>!e.realizada):currentDocs.filter(e=>!!e.realizada).sort((a,b)=>String(b.dia||"").localeCompare(String(a.dia||"")));
@@ -95,14 +141,14 @@ function renderList(type){
   return docs.map(e=>{
     const payment=e.realizada&&e.formaPagamento?e.formaPagamento:(e.pagamentoInicial?paymentLabel(e):"—");
     const meta=[e.dia||"—",e.realizada?"REALIZADA":"PENDENTE",payment].filter(Boolean).join(" • ");
-    return '<div class="delivery-row"><div><strong>'+formatEndereco(e)+'</strong><small>'+meta+'</small></div><b>'+ (e.valorCompraCentavos==null?"—":money(e.valorCompraCentavos))+'</b></div>';
+    return '<div class="delivery-row"><div><strong>'+esc(formatEndereco(e))+'</strong><small>'+esc(meta)+'</small></div><div class="row-end"><b>'+ (e.valorCompraCentavos==null?"—":money(e.valorCompraCentavos))+'</b>'+deliveryActions(e)+'</div></div>';
   }).join("");
 }
 
 function showDeliveries(){
   setActive("deliveries");setTitle("Entregas");
   const pending=currentDocs.filter(e=>e.dia===todayKey()&&!e.realizada);
-  document.querySelector("#content").innerHTML='<div class="page-head"><div><small>ACOMPANHAMENTO</small><h2>Entregas pendentes</h2><p>Entregas registradas pelo entregador que ainda não foram concluídas.</p></div></div><article class="panel"><div class="panel-head"><div><small>HOJE</small><h3>'+pending.length+' pendente'+(pending.length===1?"":"s")+'</h3></div><span class="live-dot">AO VIVO</span></div><div class="delivery-list" id="pageList">'+renderList("pending")+'</div></article>';
+  document.querySelector("#content").innerHTML='<div class="page-head page-head-actions"><div><small>ACOMPANHAMENTO</small><h2>Entregas pendentes</h2><p>Entregas registradas pelo entregador que ainda não foram concluídas.</p></div><button class="primary add-btn" id="addDelivery">+ NOVA ENTREGA</button></div><article class="panel"><div class="panel-head"><div><small>HOJE</small><h3>'+pending.length+' pendente'+(pending.length===1?"":"s")+'</h3></div><span class="live-dot">AO VIVO</span></div><div class="delivery-list" id="pageList">'+renderList("pending")+'</div></article>';
 }
 
 function showDone(){

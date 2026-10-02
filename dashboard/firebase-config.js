@@ -5,5 +5,6 @@ window.FIREBASE_CONFIG = {
   projectId: "sistema-de-entregas-bb409",
   storageBucket: "sistema-de-entregas-bb409.firebasestorage.app",
   messagingSenderId: "751451086790",
-  appId: "1:751451086790:web:42bcb80f26758f04d95cc7"
+  appId: "1:751451086790:web:42bcb80f26758f04d95cc7",
+  googleContactsClientId: "475005081261-al41vuvobjr2d3foo16oai9cpmjmora2.apps.googleusercontent.com"
 };

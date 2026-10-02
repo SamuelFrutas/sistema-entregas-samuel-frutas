@@ -542,6 +542,7 @@ class MainActivity : Activity() {
             "PAGO_ADIANTADO" -> Color.rgb(32, 139, 242)
             else -> Color.rgb(242, 166, 24)
         }
+
         val box = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             background = rounded(Color.rgb(6, 24, 37), 16f, accent)
@@ -558,7 +559,7 @@ class MainActivity : Activity() {
             gravity = Gravity.CENTER
             background = rounded(accent, 16f)
             setPadding(dp(8), dp(8), dp(8), dp(8))
-            layoutParams = LinearLayout.LayoutParams(dp(62), dp(126))
+            layoutParams = LinearLayout.LayoutParams(dp(62), dp(154))
         }
         side.addView(txt("#" + e.id.toString().padStart(3, '0'), 16f, Color.WHITE, true).apply {
             gravity = Gravity.CENTER
@@ -569,38 +570,98 @@ class MainActivity : Activity() {
         val info = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(0, -2, 1f)
-            setPadding(dp(12), dp(9), dp(8), dp(9))
+            setPadding(dp(10), dp(10), dp(8), dp(10))
         }
-        val compactLocation = if (e.semEndereco) {
-            e.enderecoReferencia
+
+        val locationTitle = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        locationTitle.addView(icon(R.drawable.ic_location, 23))
+        locationTitle.addView(txt("LOCAL DA ENTREGA", 10.5f, muted, true).apply {
+            setPadding(dp(7), dp(2), 0, dp(2))
+        })
+        info.addView(locationTitle)
+
+        if (e.semEndereco) {
+            info.addView(txt(e.enderecoReferencia, 15f, Color.WHITE, true).apply {
+                setPadding(dp(2), dp(7), dp(2), dp(4))
+            })
         } else {
-            listOf(e.predio, e.bloco, e.apartamento)
-                .filter { it.isNotBlank() }
-                .joinToString(" • ")
+            val addressRow = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, dp(5), 0, 0)
+            }
+
+            fun numberBox(label: String, value: String, weight: Float): LinearLayout =
+                LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    gravity = Gravity.CENTER_HORIZONTAL
+                    layoutParams = LinearLayout.LayoutParams(0, dp(66), weight).apply {
+                        rightMargin = dp(3)
+                    }
+                    addView(txt(label, 9.5f, muted, true).apply {
+                        gravity = Gravity.CENTER
+                        setPadding(0, 0, 0, dp(3))
+                    })
+                    addView(TextView(this@MainActivity).apply {
+                        text = value.ifBlank { "—" }
+                        textSize = 17f
+                        setTextColor(Color.WHITE)
+                        setTypeface(null, Typeface.BOLD)
+                        gravity = Gravity.CENTER
+                        background = rounded(Color.rgb(7, 28, 43), 11f, Color.rgb(35, 76, 102))
+                        layoutParams = LinearLayout.LayoutParams(-1, dp(40))
+                    })
+                }
+
+            addressRow.addView(numberBox("PRÉDIO", e.predio, 1.08f))
+            addressRow.addView(txt("•", 16f, muted, true).apply {
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(dp(10), dp(66))
+            })
+            if (e.bloco.isNotBlank()) {
+                addressRow.addView(numberBox("BLOCO", e.bloco, 0.82f))
+                addressRow.addView(txt("•", 16f, muted, true).apply {
+                    gravity = Gravity.CENTER
+                    layoutParams = LinearLayout.LayoutParams(dp(10), dp(66))
+                })
+            }
+            addressRow.addView(numberBox("APTO", e.apartamento, 1.0f))
+            info.addView(addressRow)
         }
-        info.addView(txt("⌖  " + compactLocation, 17f, Color.WHITE, true))
-        info.addView(txt("🛒  " + centsText(e.valorCompraCentavos).ifBlank { "Valor não informado" }, 15f, Color.WHITE, true))
+
+        val purchase = LinearLayout(this).apply {
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, dp(5), 0, 0)
+        }
+        purchase.addView(txt("VALOR", 9.5f, muted, true).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(42), -2)
+        })
+        purchase.addView(txt(centsText(e.valorCompraCentavos).ifBlank { "Não informado" }, 15f, Color.WHITE, true))
+        info.addView(purchase)
         body.addView(info)
 
         val actions = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setPadding(dp(6), dp(8), dp(10), dp(8))
-            layoutParams = LinearLayout.LayoutParams(dp(132), -2)
+            setPadding(dp(5), dp(8), dp(9), dp(8))
+            layoutParams = LinearLayout.LayoutParams(dp(122), -2)
         }
         actions.addView(statusChip(labelInitial(e.pagamentoInicial),
             if (e.pagamentoInicial == "NAO_PAGO") Color.rgb(225, 35, 52)
             else if (e.pagamentoInicial == "PAGO_ADIANTADO") Color.rgb(30, 122, 225)
             else Color.rgb(205, 130, 20)))
         actions.addView(TextView(this).apply {
-            text = "ABRIR ENTREGA  →"
+            text = "ABRIR ENTREGA"
             textSize = 12.5f
             setTextColor(Color.BLACK)
             setTypeface(null, Typeface.BOLD)
             gravity = Gravity.CENTER
             isSingleLine = true
-            setPadding(dp(4), dp(8), dp(4), dp(8))
-            background = rounded(green, 14f)
+            setPadding(dp(2), dp(8), dp(2), dp(8))
+            background = rounded(green, 13f)
             minHeight = dp(46)
             setOnClickListener { finish(e) }
         }, LinearLayout.LayoutParams(-1, dp(46)).apply { topMargin = dp(8) })

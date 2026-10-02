@@ -1,5 +1,7 @@
 package br.com.samuelfrutas.entregas.data
 
+import android.os.Handler
+import android.os.Looper
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -14,46 +16,37 @@ class FirebaseSync(
         private set
 
     fun sync(e: EntregaLocal, onDone: ((Boolean) -> Unit)? = null) {
-        ensureAuth { ok ->
+        if (e.id == 0L) { status = "ERRO: ID LOCAL INVÁLIDO"; onDone?.invoke(false); return }
+        syncAttempt(e, onDone, 0)
+    }
+
+    private fun syncAttempt(e: EntregaLocal, onDone: ((Boolean) -> Unit)?, attempt: Int) {
+        ensureAuth { ok, authError ->
             if (!ok) {
-                status = "AGUARDANDO AUTENTICAÇÃO"
-                onDone?.invoke(false)
+                status = "ERRO FIREBASE: ${authError ?: "autenticação"}"
+                if (attempt < 2) Handler(Looper.getMainLooper()).postDelayed({ syncAttempt(e, onDone, attempt + 1) }, 2000L)
+                else onDone?.invoke(false)
                 return@ensureAuth
             }
-
             val data = hashMapOf<String, Any?>(
-                "dia" to e.dia,
-                "predio" to e.predio,
-                "bloco" to e.bloco,
-                "apartamento" to e.apartamento,
-                "semEndereco" to e.semEndereco,
-                "enderecoReferencia" to e.enderecoReferencia,
-                "valorCompraCentavos" to e.valorCompraCentavos,
-                "pagamentoInicial" to e.pagamentoInicial,
-                "resultadoPagamento" to e.resultadoPagamento,
-                "formaPagamento" to e.formaPagamento,
-                "caixinhaCentavos" to e.caixinhaCentavos,
-                "observacao" to e.observacao,
-                "realizada" to e.realizada,
-                "sincronizacao" to "SINCRONIZADA",
-                "atualizadoEm" to FieldValue.serverTimestamp()
+                "dia" to e.dia, "predio" to e.predio, "bloco" to e.bloco,
+                "apartamento" to e.apartamento, "semEndereco" to e.semEndereco,
+                "enderecoReferencia" to e.enderecoReferencia, "valorCompraCentavos" to e.valorCompraCentavos,
+                "pagamentoInicial" to e.pagamentoInicial, "resultadoPagamento" to e.resultadoPagamento,
+                "formaPagamento" to e.formaPagamento, "caixinhaCentavos" to e.caixinhaCentavos,
+                "observacao" to e.observacao, "realizada" to e.realizada,
+                "sincronizacao" to "SINCRONIZADA", "atualizadoEm" to FieldValue.serverTimestamp()
             )
-            if (e.id == 0L) {
-                status = "ERRO: ID LOCAL INVÁLIDO"
-                onDone?.invoke(false)
-                return@ensureAuth
-            }
-
+            status = "SINCRONIZANDO..." + if (attempt > 0) " TENTATIVA ${attempt + 1}/3" else ""
             firestore.collection("entregas").document(e.id.toString()).set(data)
                 .addOnSuccessListener {
-                    dbLocal.marcarSincronizada(e.id)
-                    status = "SINCRONIZADO"
-                    onDone?.invoke(true)
+                    dbLocal.marcarSincronizada(e.id); status = "SINCRONIZADO"; onDone?.invoke(true)
                 }
-                .addOnFailureListener {
+                .addOnFailureListener { ex ->
                     dbLocal.marcarSincronizacaoPendente(e.id)
-                    status = "PENDENTE DE SINCRONIZAÇÃO"
-                    onDone?.invoke(false)
+                    status = "ERRO FIREBASE: " + (ex.message?.replace("\n", " ")?.take(140) ?: ex.javaClass.simpleName)
+                    if (attempt < 2) Handler(Looper.getMainLooper()).postDelayed({ syncAttempt(e, onDone, attempt + 1) }, 2500L)
+                    else onDone?.invoke(false)
                 }
         }
     }
@@ -76,13 +69,10 @@ class FirebaseSync(
         }
     }
 
-    private fun ensureAuth(done: (Boolean) -> Unit) {
-        if (auth.currentUser != null) {
-            done(true)
-            return
-        }
+    private fun ensureAuth(done: (Boolean, String?) -> Unit) {
+        if (auth.currentUser != null) { done(true, null); return }
         auth.signInAnonymously()
-            .addOnSuccessListener { done(true) }
-            .addOnFailureListener { done(false) }
+            .addOnSuccessListener { done(true, null) }
+            .addOnFailureListener { ex -> done(false, ex.message ?: ex.javaClass.simpleName) }
     }
 }

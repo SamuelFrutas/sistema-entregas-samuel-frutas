@@ -80,7 +80,7 @@ function startCharge(id){
 }
 function chargeAction(e){
   if(!e.realizada || e.resultadoPagamento==="PAGO" || e.pagamentoInicial!=="NAO_PAGO") return "";
-  return '<button class="row-action charge-btn" onclick="startCharge(\\''+esc(e.id)+'\\')">COBRAR NO WHATSAPP</button>';
+  return "<button class=\"row-action charge-btn\" onclick=\"startCharge('"+esc(e.id)+"')\">COBRAR NO WHATSAPP</button>";
 }
 function renderChargeRow(e){
   const key=deliveryAddressKey(e);

@@ -31,6 +31,7 @@ class MainActivity : Activity() {
     private val today get() = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
     private val money = NumberFormat.getCurrencyInstance(Locale("pt", "BR"))
     private var currentEntrega: EntregaLocal? = null
+    private var systemBackAction: (() -> Unit)? = null
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density + 0.5f).toInt()
     private fun sp(v: Float): Float = v
@@ -51,6 +52,7 @@ class MainActivity : Activity() {
         }
 
     private fun base(title: String, back: (() -> Unit)? = null) {
+        systemBackAction = if (title.isBlank()) null else (back ?: { home() })
         root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setBackgroundColor(bg)
@@ -997,6 +999,17 @@ private fun myDay() {
 
     private fun toast(s: String) {
         Toast.makeText(this, s, Toast.LENGTH_SHORT).show()
+    }
+
+    @Deprecated("Use systemBackAction navigation")
+    override fun onBackPressed() {
+        val action = systemBackAction
+        if (action != null) {
+            systemBackAction = null
+            action()
+        } else {
+            super.onBackPressed()
+        }
     }
 
     override fun onDestroy() {

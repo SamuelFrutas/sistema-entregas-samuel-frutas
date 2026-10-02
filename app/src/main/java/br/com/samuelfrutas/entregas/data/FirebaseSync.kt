@@ -52,7 +52,7 @@ class FirebaseSync(
     }
 
     fun delete(eId: Long, onDone: ((Boolean) -> Unit)? = null) {
-        ensureAuth { ok ->
+        ensureAuth { ok, _ ->
             if (!ok) {
                 onDone?.invoke(false)
                 return@ensureAuth

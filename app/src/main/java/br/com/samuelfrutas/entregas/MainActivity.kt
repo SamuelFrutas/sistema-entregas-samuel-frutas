@@ -552,18 +552,18 @@ class MainActivity : Activity() {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 holder.removeAllViews()
                 val q = s?.toString().orEmpty()
-                list.filter { location(it).contains(q, true) }.forEach { holder.addView(makePendingCard(it)) }
+                list.filter { location(it).contains(q, true) }.forEach { item -> holder.addView(makePendingCard(item, list.indexOf(item) + 1)) }
                 if (holder.childCount == 0) holder.addView(card("Nenhuma entrega encontrada.", 14f))
             }
             override fun afterTextChanged(s: android.text.Editable?) = Unit
         })
         add(search, 8); add(holder)
-        list.forEach { holder.addView(makePendingCard(it)) }
+        list.forEachIndexed { index, item -> holder.addView(makePendingCard(item, index + 1)) }
         if (list.isEmpty()) holder.addView(card("Nenhuma entrega pendente.", 15f))
         add(primary("＋  NOVA ENTREGA") { newDelivery() }, 14)
     }
 
-    private fun makePendingCard(e: EntregaLocal): View {
+    private fun makePendingCard(e: EntregaLocal, numero: Int): View {
         val accent = when (e.pagamentoInicial) {
             "NAO_PAGO" -> Color.rgb(245, 35, 58)
             "PAGO_ADIANTADO" -> Color.rgb(32, 139, 242)

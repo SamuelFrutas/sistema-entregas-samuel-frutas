@@ -52,6 +52,16 @@ class EntregaDbHelper(context: Context) : SQLiteOpenHelper(context, "entregas.db
         writableDatabase.update("entregas", v, "id=?", arrayOf(e.id.toString()))
     }
 
+    fun marcarSincronizada(id: Long) {
+        val v = ContentValues().apply { put("sincronizacao", "SINCRONIZADA") }
+        writableDatabase.update("entregas", v, "id=?", arrayOf(id.toString()))
+    }
+
+    fun marcarSincronizacaoPendente(id: Long) {
+        val v = ContentValues().apply { put("sincronizacao", "PENDENTE") }
+        writableDatabase.update("entregas", v, "id=?", arrayOf(id.toString()))
+    }
+
     fun excluir(id: Long) {
         writableDatabase.delete("entregas", "id=?", arrayOf(id.toString()))
     }

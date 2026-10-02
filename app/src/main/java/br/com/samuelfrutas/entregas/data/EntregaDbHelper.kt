@@ -37,6 +37,21 @@ class EntregaDbHelper(context: Context) : SQLiteOpenHelper(context, "entregas.db
         }
         return writableDatabase.insertOrThrow("entregas",null,v)
     }
+    fun atualizarLocal(e: EntregaLocal) {
+        val v = ContentValues().apply {
+            put("predio", e.predio)
+            put("bloco", e.bloco)
+            put("apartamento", e.apartamento)
+            put("sem_endereco", if (e.semEndereco) 1 else 0)
+            put("endereco_referencia", e.enderecoReferencia)
+            if (e.valorCompraCentavos == null) putNull("valor_compra_centavos")
+            else put("valor_compra_centavos", e.valorCompraCentavos)
+            put("pagamento_inicial", e.pagamentoInicial)
+            put("sincronizacao", "PENDENTE")
+        }
+        writableDatabase.update("entregas", v, "id=?", arrayOf(e.id.toString()))
+    }
+
     fun atualizarFinal(id:Long,resultado:String,forma:String,caixinha:Long,observacao:String){
         val v=ContentValues().apply{put("resultado_pagamento",resultado);put("forma_pagamento",forma);put("caixinha_centavos",caixinha);put("observacao",observacao);put("realizada",1)}
         writableDatabase.update("entregas",v,"id=?",arrayOf(id.toString()))

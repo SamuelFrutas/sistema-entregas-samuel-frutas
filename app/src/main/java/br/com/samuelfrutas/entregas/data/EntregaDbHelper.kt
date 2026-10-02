@@ -52,6 +52,27 @@ class EntregaDbHelper(context: Context) : SQLiteOpenHelper(context, "entregas.db
         writableDatabase.update("entregas", v, "id=?", arrayOf(e.id.toString()))
     }
 
+    fun substituirDoServidor(e: EntregaLocal) {
+        val v = ContentValues().apply {
+            put("dia", e.dia)
+            put("predio", e.predio)
+            put("bloco", e.bloco)
+            put("apartamento", e.apartamento)
+            put("sem_endereco", if (e.semEndereco) 1 else 0)
+            put("endereco_referencia", e.enderecoReferencia)
+            if (e.valorCompraCentavos == null) putNull("valor_compra_centavos")
+            else put("valor_compra_centavos", e.valorCompraCentavos)
+            put("pagamento_inicial", e.pagamentoInicial)
+            put("resultado_pagamento", e.resultadoPagamento)
+            put("forma_pagamento", e.formaPagamento)
+            put("caixinha_centavos", e.caixinhaCentavos)
+            put("observacao", e.observacao)
+            put("realizada", if (e.realizada) 1 else 0)
+            put("sincronizacao", "SINCRONIZADA")
+        }
+        writableDatabase.update("entregas", v, "id=?", arrayOf(e.id.toString()))
+    }
+
     fun marcarSincronizada(id: Long) {
         val v = ContentValues().apply { put("sincronizacao", "SINCRONIZADA") }
         writableDatabase.update("entregas", v, "id=?", arrayOf(id.toString()))

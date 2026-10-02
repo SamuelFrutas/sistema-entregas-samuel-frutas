@@ -159,6 +159,20 @@ class MainActivity : Activity() {
             setOnClickListener { action() }
         }
 
+    private fun iconBtn(resId: Int, title: String, action: () -> Unit) =
+        LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            background = rounded(panel2, 14f, Color.rgb(35, 76, 102))
+            setPadding(dp(14), dp(8), dp(14), dp(8))
+            minHeight = dp(52)
+            addView(icon(resId, 24))
+            addView(txt(title, 14f, Color.WHITE, true).apply {
+                setPadding(dp(10), dp(4), dp(4), dp(4))
+            })
+            setOnClickListener { action() }
+        }
+
     private fun primary(s: String, action: () -> Unit) =
         TextView(this).apply {
             text = s
@@ -272,11 +286,11 @@ class MainActivity : Activity() {
         v?.let { money.format(it / 100.0) } ?: ""
 
     private fun location(e: EntregaLocal): String {
-        if (e.semEndereco) return "📍 " + e.enderecoReferencia
+        if (e.semEndereco) return e.enderecoReferencia
         val parts = mutableListOf<String>()
-        if (e.predio.isNotBlank()) parts.add("Prédio ${e.predio}")
-        if (e.bloco.isNotBlank()) parts.add("Bloco ${e.bloco}")
-        if (e.apartamento.isNotBlank()) parts.add("Apt ${e.apartamento}")
+        if (e.predio.isNotBlank()) parts.add(e.predio)
+        if (e.bloco.isNotBlank()) parts.add(e.bloco)
+        if (e.apartamento.isNotBlank()) parts.add(e.apartamento)
         return parts.joinToString(" • ")
     }
 
@@ -774,12 +788,20 @@ private fun myDay() {
         } else {
             "Valor por entrega não configurado"
         }
-        add(card("✓   " + done + "\nEntregas realizadas", 18f, Color.rgb(6, 60, 95)), 8)
-        add(card("🚚   " + ganhoText + "\nValor do entregador no dia\n" +
-            (if (valorPorEntrega > 0L) centsText(valorPorEntrega) + " × " + list.size + " entregas" else "Configure no dashboard web"), 17f, Color.rgb(66, 22, 105)), 8)
-        add(card("🎁   " + centsText(tips) + "\nCaixinhas recebidas", 17f, Color.rgb(73, 57, 3)), 8)
-        add(card("🚚   " + pendingCount + "\nEntregas ainda pendentes", 17f, Color.rgb(5, 72, 48)), 8)
-        add(btn("☷  VER ENTREGAS REALIZADAS") { completed() }, 14)
+        add(iconTitle(R.drawable.ic_check_circle, "ENTREGAS REALIZADAS", done.toString()).apply {
+            background = rounded(Color.rgb(6, 60, 95), 16f, Color.rgb(35, 76, 102))
+        }, 8)
+        add(iconTitle(R.drawable.ic_truck, "VALOR DO ENTREGADOR", ganhoText + "\n" +
+            (if (valorPorEntrega > 0L) centsText(valorPorEntrega) + " × " + list.size + " entregas" else "Configure no dashboard web")).apply {
+            background = rounded(Color.rgb(66, 22, 105), 16f, Color.rgb(35, 76, 102))
+        }, 8)
+        add(iconTitle(R.drawable.ic_add, "CAIXINHAS RECEBIDAS", centsText(tips)).apply {
+            background = rounded(Color.rgb(73, 57, 3), 16f, Color.rgb(35, 76, 102))
+        }, 8)
+        add(iconTitle(R.drawable.ic_pending, "ENTREGAS PENDENTES", pendingCount.toString()).apply {
+            background = rounded(Color.rgb(5, 72, 48), 16f, Color.rgb(35, 76, 102))
+        }, 8)
+        add(iconBtn(R.drawable.ic_check_circle, "VER ENTREGAS REALIZADAS") { completed() }, 14)
     }
 
         private fun syncScreen() {
@@ -791,13 +813,15 @@ private fun myDay() {
 
     private fun menuScreen() {
         base("Menu", { home() })
-        add(card("🍎  SAMUEL\nFRUTAS", 20f), 8)
-        add(btn("⌂  Início") { home() }, 8)
-        add(btn("☷  Entregas Pendentes") { pending() })
-        add(btn("✓  Entregas Realizadas") { completed() })
-        add(btn("▥  Meu Dia") { myDay() })
-        add(btn("☁  Sincronização") { syncScreen() })
-        add(danger("↪  Sair do Aplicativo") { finishAndRemoveTask() }, 22)
+        add(iconTitle(R.drawable.ic_truck, "SAMUEL FRUTAS", "MODO ENTREGADOR").apply {
+            background = rounded(panel, 16f, Color.rgb(35, 76, 102))
+        }, 8)
+        add(iconBtn(R.drawable.ic_truck, "Início") { home() }, 8)
+        add(iconBtn(R.drawable.ic_pending, "Entregas Pendentes") { pending() })
+        add(iconBtn(R.drawable.ic_check_circle, "Entregas Realizadas") { completed() })
+        add(iconBtn(R.drawable.ic_pending, "Meu Dia") { myDay() })
+        add(iconBtn(R.drawable.ic_check_circle, "Sincronização") { syncScreen() })
+        add(danger("Sair do Aplicativo") { finishAndRemoveTask() }, 22)
     }
 
     private fun labelInitial(s: String) = when (s) {

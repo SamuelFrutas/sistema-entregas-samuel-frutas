@@ -165,7 +165,7 @@ class MainActivity : Activity() {
             gravity = Gravity.CENTER_VERTICAL
             background = rounded(panel2, 14f, Color.rgb(35, 76, 102))
             setPadding(dp(14), dp(8), dp(14), dp(8))
-            minHeight = dp(52)
+            minimumHeight = dp(52)
             addView(icon(resId, 24))
             addView(txt(title, 14f, Color.WHITE, true).apply {
                 setPadding(dp(10), dp(4), dp(4), dp(4))

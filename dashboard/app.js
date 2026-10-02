@@ -149,6 +149,8 @@ function showDeliveries(){
   setActive("deliveries");setTitle("Entregas");
   const pending=currentDocs.filter(e=>e.dia===todayKey()&&!e.realizada);
   document.querySelector("#content").innerHTML='<div class="page-head page-head-actions"><div><small>ACOMPANHAMENTO</small><h2>Entregas pendentes</h2><p>Entregas registradas pelo entregador que ainda não foram concluídas.</p></div><button class="primary add-btn" id="addDelivery">+ NOVA ENTREGA</button></div><article class="panel"><div class="panel-head"><div><small>HOJE</small><h3>'+pending.length+' pendente'+(pending.length===1?"":"s")+'</h3></div><span class="live-dot">AO VIVO</span></div><div class="delivery-list" id="pageList">'+renderList("pending")+'</div></article>';
+  const addButton=document.querySelector("#addDelivery");
+  if(addButton) addButton.onclick=openNewDelivery;
 }
 
 function showDone(){

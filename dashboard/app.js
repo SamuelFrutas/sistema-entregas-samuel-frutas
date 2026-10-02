@@ -4,6 +4,95 @@ let currentUser=null;
 let entregasUnsub=null;
 let currentDocs=[];
 
+let googleContactsToken=null;
+let googleContactsCache=[];
+let googleContactsTokenClient=null;
+const GOOGLE_CONTACTS_CLIENT_ID = "";
+const GOOGLE_CONTACTS_SCOPE = "https://www.googleapis.com/auth/contacts.readonly";
+
+function normalizeAddressKey(value){return String(value||"").toUpperCase().replace(/\s+/g,"").replace(/-/g,"/");}
+function deliveryAddressKey(e){
+  if(!e || e.semEndereco || !e.predio || !e.apartamento) return "";
+  return normalizeAddressKey(e.predio)+"/"+normalizeAddressKey(e.bloco||"")+"/"+normalizeAddressKey(e.apartamento);
+}
+function contactPhone(person){return (person.phoneNumbers||[]).map(p=>p.value||"").find(Boolean)||"";}
+function normalizeWhatsapp(phone){
+  let n=String(phone||"").replace(/\D/g,"");
+  if(n.startsWith("00")) n=n.slice(2);
+  if(n.length===10 || n.length===11) n="55"+n;
+  return n;
+}
+function contactMatches(person,key){
+  const name=person.names?.[0]?.displayName||"";
+  return normalizeAddressKey(name).includes(normalizeAddressKey(key));
+}
+function googleContactName(person){return person.names?.[0]?.displayName||"Contato sem nome";}
+function chargeMessage(e){return "Total do investimento na sua saúde : "+money(e.valorCompraCentavos);}
+function openWhatsappCharge(e,person){
+  const phone=normalizeWhatsapp(contactPhone(person));
+  if(!phone){alert("Este contato não possui telefone cadastrado.");return;}
+  window.open("https://wa.me/"+phone+"?text="+encodeURIComponent(chargeMessage(e)),"_blank","noopener,noreferrer");
+}
+function googleContactsStatusText(){return googleContactsCache.length ? googleContactsCache.length+" contatos carregados" : "Contatos do Google não conectados";}
+async function fetchGoogleContacts(token){
+  const people=[]; let pageToken="";
+  do{
+    const params=new URLSearchParams({personFields:"names,phoneNumbers",pageSize:"500"});
+    if(pageToken) params.set("pageToken",pageToken);
+    const res=await fetch("https://people.googleapis.com/v1/people/me/connections?"+params.toString(),{headers:{Authorization:"Bearer "+token}});
+    if(res.status===401) throw new Error("AUTH_EXPIRED");
+    if(!res.ok) throw new Error("Google Contacts: HTTP "+res.status);
+    const data=await res.json(); people.push(...(data.connections||[])); pageToken=data.nextPageToken||"";
+  }while(pageToken);
+  googleContactsCache=people; googleContactsToken=token; return people;
+}
+function setGoogleContactsMessage(msg){const el=document.querySelector("#googleContactsMsg");if(el)el.textContent=msg;}
+function connectGoogleContacts(){
+  if(!GOOGLE_CONTACTS_CLIENT_ID){alert("A integração está preparada, mas falta cadastrar o OAuth Client ID do Google Cloud.");return;}
+  if(!window.google?.accounts?.oauth2){alert("O componente do Google ainda está carregando. Tente novamente.");return;}
+  if(!googleContactsTokenClient){
+    googleContactsTokenClient=google.accounts.oauth2.initTokenClient({
+      client_id:GOOGLE_CONTACTS_CLIENT_ID,scope:GOOGLE_CONTACTS_SCOPE,
+      callback:async response=>{
+        if(response.error){setGoogleContactsMessage("Não foi possível autorizar o Google Contacts.");return;}
+        try{setGoogleContactsMessage("Carregando contatos do Google...");await fetchGoogleContacts(response.access_token);showCharges();}
+        catch(err){setGoogleContactsMessage(err.message==="AUTH_EXPIRED"?"A autorização expirou. Conecte novamente.":"Erro ao carregar os contatos.");}
+      }
+    });
+  }
+  googleContactsTokenClient.requestAccessToken({prompt:"consent"});
+}
+function findContactsForDelivery(e){
+  const key=deliveryAddressKey(e); if(!key)return [];
+  return googleContactsCache.filter(p=>contactMatches(p,key)&&contactPhone(p));
+}
+function startCharge(id){
+  const e=currentDocs.find(x=>x.id===id);if(!e)return;
+  if(!googleContactsCache.length){connectGoogleContacts();return;}
+  const matches=findContactsForDelivery(e);
+  if(!matches.length){alert("Nenhum contato do Google foi encontrado com o endereço "+deliveryAddressKey(e)+".");return;}
+  if(matches.length===1){openWhatsappCharge(e,matches[0]);return;}
+  const overlay=document.createElement("div");overlay.className="modal-overlay";
+  overlay.innerHTML='<div class="modal-card charge-modal"><div class="modal-head"><div><small>COBRANÇA</small><h2>Escolha o cliente</h2><p>Encontramos '+matches.length+' contatos para <b>'+esc(deliveryAddressKey(e))+'</b>.</p></div><button class="modal-close" id="closeCharge">×</button></div><div class="contact-options">'+matches.map((p,i)=>'<button class="contact-option" data-contact="'+i+'"><strong>'+esc(googleContactName(p))+'</strong><span>'+esc(contactPhone(p))+'</span></button>').join("")+'</div></div>';
+  document.body.appendChild(overlay);
+  document.getElementById("closeCharge").onclick=()=>overlay.remove();
+  overlay.querySelectorAll(".contact-option").forEach(btn=>btn.onclick=()=>{openWhatsappCharge(e,matches[Number(btn.dataset.contact)]);overlay.remove();});
+}
+function chargeAction(e){
+  if(!e.realizada || e.resultadoPagamento==="PAGO" || e.pagamentoInicial!=="NAO_PAGO") return "";
+  return '<button class="row-action charge-btn" onclick="startCharge(\\''+esc(e.id)+'\\')">COBRAR NO WHATSAPP</button>';
+}
+function renderChargeRow(e){
+  const key=deliveryAddressKey(e);
+  return '<div class="delivery-row charge-row"><div><strong>'+esc(formatEndereco(e))+'</strong><small>'+esc((e.dia||"—")+" • Não pago"+(key?" • "+key:""))+'</small></div><div class="row-end"><b>'+money(e.valorCompraCentavos)+'</b>'+chargeAction(e)+'</div></div>';
+}
+function showCharges(){
+  setActive("charges");setTitle("Cobranças");
+  const unpaid=currentDocs.filter(e=>!!e.realizada&&e.pagamentoInicial==="NAO_PAGO"&&e.resultadoPagamento!=="PAGO");
+  document.querySelector("#content").innerHTML='<div class="page-head page-head-actions"><div><small>CLIENTES COM PAGAMENTO PENDENTE</small><h2>Cobrar pelo WhatsApp</h2><p>O sistema procura o endereço no nome do contato do Google e abre a conversa com a mensagem pronta.</p></div><button class="primary add-btn" id="googleContactsButton">'+(googleContactsCache.length?"ATUALIZAR CONTATOS":"CONECTAR GOOGLE CONTATOS")+'</button></div><div class="panel charge-connection"><div><small>GOOGLE CONTACTS</small><h3>'+esc(googleContactsStatusText())+'</h3><p id="googleContactsMsg">O endereço será procurado dentro do nome do contato, por exemplo: Márcia 1350/1/1608.</p></div></div><article class="panel"><div class="panel-head"><div><small>PAGAMENTOS</small><h3>'+unpaid.length+' pendente'+(unpaid.length===1?"":"s")+'</h3></div></div><div class="delivery-list">'+(unpaid.length?unpaid.map(renderChargeRow).join(""):renderEmpty("Nenhuma cobrança pendente."))+'</div></article>';
+  document.getElementById("googleContactsButton").onclick=connectGoogleContacts;
+}
+
 function money(c){return (Number(c||0)/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});}
 function parseMoney(v){const s=String(v||"").trim().replace(/R\$\s?/g,"").replace(/\./g,"").replace(",", ".");const n=Number(s);return Number.isFinite(n)&&n>=0?Math.round(n*100):null;}
 function todayKey(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
@@ -187,6 +276,7 @@ function renderCurrentPage(){
   if(page==="home")renderHomeData();
   else if(page==="deliveries")showDeliveries();
   else if(page==="done")showDone();
+  else if(page==="charges")showCharges();
   else if(page==="finance")showFinance();
   else if(page==="settings")showSettings();
 }
@@ -197,6 +287,7 @@ document.querySelectorAll("[data-page]").forEach(b=>{
     if(page==="home")showHome();
     else if(page==="deliveries")showDeliveries();
     else if(page==="done")showDone();
+    else if(page==="charges")showCharges();
     else if(page==="finance")showFinance();
     else if(page==="settings")showSettings();
   };

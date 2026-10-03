@@ -186,7 +186,7 @@ function renderChargeRow(e){
 }
 function showCharges(){
   setActive("charges");setTitle("Cobranças");
-  const unpaid=currentDocs.filter(e=>!!e.realizada&&e.resultadoPagamento!=="PAGO"&&(e.pagamentoInicial==="NAO_PAGO"||e.resultadoPagamento==="NAO_PAGO"));
+  const unpaid=currentDocs.filter(e=>!!e.realizada&&!e.cobrancaFeita&&e.resultadoPagamento!=="PAGO"&&(e.pagamentoInicial==="NAO_PAGO"||e.resultadoPagamento==="NAO_PAGO"));
   document.querySelector("#content").innerHTML='<div class="page-head page-head-actions"><div><small>CLIENTES COM PAGAMENTO PENDENTE</small><h2>Cobrar pelo WhatsApp</h2><p>O sistema procura o endereço nos contatos salvos no banco e abre a conversa com a mensagem pronta.</p></div><button class="primary add-btn" id="googleContactsButton">'+(googleContactsCache.length?"ATUALIZAR CONTATOS":"CONECTAR GOOGLE CONTATOS")+'</button></div><div class="panel charge-connection"><div><small>GOOGLE CONTACTS</small><h3>'+esc(googleContactsStatusText())+'</h3><p id="googleContactsMsg">Os contatos ficam armazenados no banco. Quando cadastrar novos clientes no Google, clique em “ATUALIZAR CONTATOS”.</p></div></div><article class="panel"><div class="panel-head"><div><small>PAGAMENTOS</small><h3>'+unpaid.length+' pendente'+(unpaid.length===1?"":"s")+'</h3></div></div><div class="delivery-list">'+(unpaid.length?unpaid.map(renderChargeRow).join(""):renderEmpty("Nenhuma cobrança pendente."))+'</div></article>';
   document.getElementById("googleContactsButton").onclick=updateGoogleContacts;
   if(!googleContactsDbLoaded){

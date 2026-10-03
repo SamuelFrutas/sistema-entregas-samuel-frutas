@@ -23,6 +23,9 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.10.2"
+      - name: Prepare app icon
+        run: |
+          cat app/icon_data_*.txt | base64 -d > app/src/main/res/drawable/ic_launcher.jpg
       - name: Build debug APK
         run: gradle clean assembleDebug --stacktrace
       - name: Upload APK

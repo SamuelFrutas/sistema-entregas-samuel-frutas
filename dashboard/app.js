@@ -83,8 +83,8 @@ function initGoogleContactsCodeClient(){
         });
         const data=await save.json().catch(()=>({}));
         if(!save.ok) throw new Error(data.error||"GOOGLE_AUTHORIZE_ERROR");
-        setGoogleContactsMessage("Autorização salva. Carregando contatos...");
-        await fetchGoogleContactsBackend();
+        setGoogleContactsMessage("Autorização salva. Sincronizando contatos...");
+        await fetchGoogleContactsBackend(true);
         showCharges();
       }catch(err){
         setGoogleContactsMessage("Não foi possível concluir a conexão com o Google.");

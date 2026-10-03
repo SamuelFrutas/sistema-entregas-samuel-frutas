@@ -5,9 +5,10 @@ let entregasUnsub=null;
 let currentDocs=[];
 
 let googleContactsCache=[];
-let googleContactsCodeClient=null;
+let googleContactsToken=null;
+let googleContactsTokenClient=null;
+let googleContactsDbLoaded=false;
 const GOOGLE_CONTACTS_CLIENT_ID = window.FIREBASE_CONFIG?.googleContactsClientId || "";
-const GOOGLE_CONTACTS_BACKEND = window.FIREBASE_CONFIG?.googleContactsBackendUrl || "https://us-central1-sistema-de-entregas-bb409.cloudfunctions.net/googleContacts";
 const GOOGLE_CONTACTS_SCOPE = "https://www.googleapis.com/auth/contacts.readonly";
 
 function normalizeAddressKey(value){return String(value||"").toUpperCase().replace(/\s+/g,"").replace(/-/g,"/");}
@@ -33,111 +34,129 @@ function openWhatsappCharge(e,person){
   if(!phone){alert("Este contato não possui telefone cadastrado.");return;}
   window.open("https://wa.me/"+phone+"?text="+encodeURIComponent(chargeMessage(e)),"_blank","noopener,noreferrer");
 }
-function googleContactsStatusText(){return googleContactsCache.length ? googleContactsCache.length+" contatos no banco" : "Contatos ainda não sincronizados";}
-
-async function firebaseIdToken(){
-  if(!auth?.currentUser) throw new Error("AUTH_REQUIRED");
-  return auth.currentUser.getIdToken();
+function googleContactsStatusText(){
+  return googleContactsCache.length ? googleContactsCache.length+" contatos no banco" : "Contatos ainda não sincronizados";
 }
-
-async function fetchGoogleContactsBackend(refreshGoogle=false){
-  const token=await firebaseIdToken();
-  const endpoint=refreshGoogle?"/contacts":"/cached-contacts";
-  const res=await fetch(GOOGLE_CONTACTS_BACKEND+endpoint,{headers:{Authorization:"Bearer "+token}});
-  const data=await res.json().catch(()=>({}));
-  if(res.status===404 && data.error==="GOOGLE_NOT_CONNECTED") throw new Error("GOOGLE_NOT_CONNECTED");
-  if(res.status===401 && data.error==="GOOGLE_RECONNECT_REQUIRED") throw new Error("GOOGLE_RECONNECT_REQUIRED");
-  if(!res.ok) throw new Error(data.error||"GOOGLE_CONTACTS_ERROR");
-  googleContactsCache=Array.isArray(data.contacts)?data.contacts:[];
-  return googleContactsCache;
-}
-
 function setGoogleContactsMessage(msg){
   const el=document.querySelector("#googleContactsMsg");
   if(el)el.textContent=msg;
 }
-
-function initGoogleContactsCodeClient(){
-  if(!GOOGLE_CONTACTS_CLIENT_ID || !window.google?.accounts?.oauth2) return false;
-  if(googleContactsCodeClient) return true;
-  googleContactsCodeClient=google.accounts.oauth2.initCodeClient({
+function googleContactDocId(person,index){
+  const raw=String(person.resourceName||((person.names?.[0]?.displayName||"")+"|"+(person.phoneNumbers?.[0]?.value||""))||("contato-"+index));
+  try{
+    return "g_"+btoa(unescape(encodeURIComponent(raw))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"").slice(0,140);
+  }catch(e){
+    return "g_"+encodeURIComponent(raw).slice(0,140);
+  }
+}
+async function loadGoogleContactsFromDb(){
+  if(googleContactsDbLoaded) return googleContactsCache;
+  try{
+    const snap=await db.collection("contatosGoogle").get();
+    googleContactsCache=snap.docs.map(d=>d.data());
+    googleContactsDbLoaded=true;
+    return googleContactsCache;
+  }catch(err){
+    googleContactsDbLoaded=true;
+    setGoogleContactsMessage("Não foi possível carregar os contatos salvos.");
+    return [];
+  }
+}
+async function saveGoogleContactsToDb(people){
+  const incomingIds=new Set();
+  const existingSnap=await db.collection("contatosGoogle").get();
+  const operations=[];
+  people.forEach((person,index)=>{
+    const id=googleContactDocId(person,index);
+    incomingIds.add(id);
+    operations.push({
+      type:"set",
+      id,
+      data:{
+        resourceName:person.resourceName||"",
+        names:person.names||[],
+        phoneNumbers:person.phoneNumbers||[],
+        nome:googleContactName(person),
+        telefone:contactPhone(person),
+        atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()
+      }
+    });
+  });
+  existingSnap.docs.forEach(doc=>{
+    if(!incomingIds.has(doc.id)) operations.push({type:"delete",ref:doc.ref});
+  });
+  for(let i=0;i<operations.length;i+=400){
+    const batch=db.batch();
+    operations.slice(i,i+400).forEach(op=>{
+      if(op.type==="delete") batch.delete(op.ref);
+      else batch.set(db.collection("contatosGoogle").doc(op.id),op.data,{merge:true});
+    });
+    await batch.commit();
+  }
+  googleContactsCache=people;
+  googleContactsDbLoaded=true;
+}
+async function fetchGoogleContactsFromGoogle(token){
+  const people=[];
+  let pageToken="";
+  do{
+    const params=new URLSearchParams({personFields:"names,phoneNumbers,metadata",pageSize:"500"});
+    if(pageToken)params.set("pageToken",pageToken);
+    const res=await fetch("https://people.googleapis.com/v1/people/me/connections?"+params.toString(),{
+      headers:{Authorization:"Bearer "+token}
+    });
+    if(res.status===401)throw new Error("AUTH_EXPIRED");
+    if(!res.ok)throw new Error("Google Contacts: HTTP "+res.status);
+    const data=await res.json();
+    people.push(...(data.connections||[]));
+    pageToken=data.nextPageToken||"";
+  }while(pageToken);
+  return people;
+}
+function initGoogleContactsClient(){
+  if(!GOOGLE_CONTACTS_CLIENT_ID || !window.google?.accounts?.oauth2)return false;
+  if(googleContactsTokenClient)return true;
+  googleContactsTokenClient=google.accounts.oauth2.initTokenClient({
     client_id:GOOGLE_CONTACTS_CLIENT_ID,
     scope:GOOGLE_CONTACTS_SCOPE,
-    ux_mode:"popup",
     callback:async response=>{
       if(response.error){
-        setGoogleContactsMessage("Não foi possível autorizar o Google Contacts.");
+        setGoogleContactsMessage("Autorização cancelada.");
         return;
       }
       try{
-        setGoogleContactsMessage("Salvando autorização do Google...");
-        const token=await firebaseIdToken();
-        const save=await fetch(GOOGLE_CONTACTS_BACKEND+"/authorize",{
-          method:"POST",
-          headers:{
-            "Content-Type":"application/json",
-            "Authorization":"Bearer "+token,
-            "X-Requested-With":"XmlHttpRequest"
-          },
-          body:JSON.stringify({code:response.code})
-        });
-        const data=await save.json().catch(()=>({}));
-        if(!save.ok) throw new Error(data.error||"GOOGLE_AUTHORIZE_ERROR");
-        setGoogleContactsMessage("Autorização salva. Sincronizando contatos...");
-        await fetchGoogleContactsBackend(true);
+        setGoogleContactsMessage("Baixando contatos do Google...");
+        const people=await fetchGoogleContactsFromGoogle(response.access_token);
+        setGoogleContactsMessage("Salvando "+people.length+" contatos no banco...");
+        await saveGoogleContactsToDb(people);
+        googleContactsToken=response.access_token;
         showCharges();
+        setGoogleContactsMessage(people.length+" contatos atualizados no banco.");
       }catch(err){
-        setGoogleContactsMessage("Não foi possível concluir a conexão com o Google.");
+        setGoogleContactsMessage(err.message==="AUTH_EXPIRED"?"A autorização expirou. Tente atualizar novamente.":"Não foi possível carregar os contatos do Google.");
       }
-    },
-    error_callback:error=>{
-      setGoogleContactsMessage(error?.type==="popup_closed"?"Autorização cancelada.":"Não foi possível abrir a autorização do Google.");
     }
   });
   return true;
 }
-
-function connectGoogleContacts(){
-  if(!initGoogleContactsCodeClient()){
-    if(!GOOGLE_CONTACTS_CLIENT_ID) alert("A integração está preparada, mas falta o OAuth Client ID do Google Cloud.");
+function updateGoogleContacts(){
+  if(!initGoogleContactsClient()){
+    if(!GOOGLE_CONTACTS_CLIENT_ID)alert("Falta cadastrar o OAuth Client ID do Google Cloud.");
     else alert("O componente do Google ainda está carregando. Tente novamente.");
     return;
   }
-  googleContactsCodeClient.requestCode();
+  const prompt=googleContactsCache.length?"":"consent";
+  googleContactsTokenClient.requestAccessToken({prompt});
 }
-
-async function loadGoogleContactsSilently(){
-  try{
-    setGoogleContactsMessage("Verificando conexão com o Google...");
-    await fetchGoogleContactsBackend();
-    showCharges();
-    return true;
-  }catch(err){
-    if(err.message==="GOOGLE_NOT_CONNECTED"){
-      setGoogleContactsMessage("Conecte o Google uma única vez para liberar as cobranças automáticas.");
-    }else if(err.message==="GOOGLE_RECONNECT_REQUIRED"){
-      googleContactsCache=[];
-      setGoogleContactsMessage("A autorização do Google expirou ou foi revogada. Conecte novamente.");
-    }else{
-      setGoogleContactsMessage("Não foi possível carregar os contatos do Google.");
-    }
-    return false;
-  }
-}
-
 function findContactsForDelivery(e){
-  const key=deliveryAddressKey(e); if(!key)return [];
+  const key=deliveryAddressKey(e);if(!key)return [];
   return googleContactsCache.filter(p=>contactMatches(p,key)&&contactPhone(p));
 }
-
 async function startCharge(id){
   const e=currentDocs.find(x=>x.id===id);if(!e)return;
-  if(!googleContactsCache.length){
-    const loaded=await loadGoogleContactsSilently();
-    if(!loaded){connectGoogleContacts();return;}
-  }
+  if(!googleContactsDbLoaded)await loadGoogleContactsFromDb();
   const matches=findContactsForDelivery(e);
-  if(!matches.length){alert("Nenhum contato do Google foi encontrado com o endereço "+deliveryAddressKey(e)+".");return;}
+  if(!matches.length){alert("Nenhum contato salvo foi encontrado com o endereço "+deliveryAddressKey(e)+". Clique em ATUALIZAR CONTATOS se o cliente foi cadastrado recentemente.");return;}
   if(matches.length===1){openWhatsappCharge(e,matches[0]);return;}
   const overlay=document.createElement("div");overlay.className="modal-overlay";
   overlay.innerHTML='<div class="modal-card charge-modal"><div class="modal-head"><div><small>COBRANÇA</small><h2>Escolha o cliente</h2><p>Encontramos '+matches.length+' contatos para <b>'+esc(deliveryAddressKey(e))+'</b>.</p></div><button class="modal-close" id="closeCharge">×</button></div><div class="contact-options">'+matches.map((p,i)=>'<button class="contact-option" data-contact="'+i+'"><strong>'+esc(googleContactName(p))+'</strong><span>'+esc(contactPhone(p))+'</span></button>').join("")+'</div></div>';
@@ -145,9 +164,8 @@ async function startCharge(id){
   document.getElementById("closeCharge").onclick=()=>overlay.remove();
   overlay.querySelectorAll(".contact-option").forEach(btn=>btn.onclick=()=>{openWhatsappCharge(e,matches[Number(btn.dataset.contact)]);overlay.remove();});
 }
-
 function chargeAction(e){
-  if(!e.realizada || e.resultadoPagamento==="PAGO" || (e.pagamentoInicial!=="NAO_PAGO" && e.resultadoPagamento!=="NAO_PAGO")) return "";
+  if(!e.realizada || e.resultadoPagamento==="PAGO" || (e.pagamentoInicial!=="NAO_PAGO" && e.resultadoPagamento!=="NAO_PAGO"))return "";
   return "<button class=\"row-action charge-btn\" onclick=\"startCharge('"+esc(e.id)+"')\">COBRAR NO WHATSAPP</button>";
 }
 function renderChargeRow(e){
@@ -157,15 +175,11 @@ function renderChargeRow(e){
 function showCharges(){
   setActive("charges");setTitle("Cobranças");
   const unpaid=currentDocs.filter(e=>!!e.realizada&&e.resultadoPagamento!=="PAGO"&&(e.pagamentoInicial==="NAO_PAGO"||e.resultadoPagamento==="NAO_PAGO"));
-  document.querySelector("#content").innerHTML='<div class="page-head page-head-actions"><div><small>CLIENTES COM PAGAMENTO PENDENTE</small><h2>Cobrar pelo WhatsApp</h2><p>O sistema procura o endereço no cadastro sincronizado e abre a conversa com a mensagem pronta.</p></div><button class="primary add-btn" id="googleContactsButton">'+(googleContactsCache.length?"ATUALIZAR CONTATOS":"CONECTAR GOOGLE CONTATOS")+'</button></div><div class="panel charge-connection"><div><small>GOOGLE CONTACTS</small><h3>'+esc(googleContactsStatusText())+'</h3><p id="googleContactsMsg">Os contatos ficam sincronizados no banco. Use “ATUALIZAR CONTATOS” quando cadastrar novos clientes no celular.</p></div></div><article class="panel"><div class="panel-head"><div><small>PAGAMENTOS</small><h3>'+unpaid.length+' pendente'+(unpaid.length===1?"":"s")+'</h3></div></div><div class="delivery-list">'+(unpaid.length?unpaid.map(renderChargeRow).join(""):renderEmpty("Nenhuma cobrança pendente."))+'</div></article>';
-  document.getElementById("googleContactsButton").onclick=async()=>{
-    if(googleContactsCache.length){
-      setGoogleContactsMessage("Atualizando contatos...");
-      try{await fetchGoogleContactsBackend(true);showCharges();}
-      catch(err){setGoogleContactsMessage("Não foi possível atualizar os contatos.");}
-    }else connectGoogleContacts();
-  };
-  if(!googleContactsCache.length) setTimeout(loadGoogleContactsSilently,250);
+  document.querySelector("#content").innerHTML='<div class="page-head page-head-actions"><div><small>CLIENTES COM PAGAMENTO PENDENTE</small><h2>Cobrar pelo WhatsApp</h2><p>O sistema procura o endereço nos contatos salvos no banco e abre a conversa com a mensagem pronta.</p></div><button class="primary add-btn" id="googleContactsButton">'+(googleContactsCache.length?"ATUALIZAR CONTATOS":"CONECTAR GOOGLE CONTATOS")+'</button></div><div class="panel charge-connection"><div><small>GOOGLE CONTACTS</small><h3>'+esc(googleContactsStatusText())+'</h3><p id="googleContactsMsg">Os contatos ficam armazenados no banco. Quando cadastrar novos clientes no Google, clique em “ATUALIZAR CONTATOS”.</p></div></div><article class="panel"><div class="panel-head"><div><small>PAGAMENTOS</small><h3>'+unpaid.length+' pendente'+(unpaid.length===1?"":"s")+'</h3></div></div><div class="delivery-list">'+(unpaid.length?unpaid.map(renderChargeRow).join(""):renderEmpty("Nenhuma cobrança pendente."))+'</div></article>';
+  document.getElementById("googleContactsButton").onclick=updateGoogleContacts;
+  if(!googleContactsDbLoaded){
+    loadGoogleContactsFromDb().then(()=>showCharges());
+  }
 }
 
 function money(c){return (Number(c||0)/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});}

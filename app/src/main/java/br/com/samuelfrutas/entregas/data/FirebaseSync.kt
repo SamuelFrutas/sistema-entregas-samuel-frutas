@@ -112,6 +112,22 @@ class FirebaseSync(
         realtimeListener = null
     }
 
+    fun getValorPorEntrega(onDone: (Long?) -> Unit) {
+        ensureAuth { ok, _ ->
+            if (!ok) {
+                onDone(null)
+                return@ensureAuth
+            }
+            firestore.collection("configuracoes").document("entregador").get()
+                .addOnSuccessListener { snap ->
+                    onDone(snap.getLong("valorEntregaCentavos"))
+                }
+                .addOnFailureListener {
+                    onDone(null)
+                }
+        }
+    }
+
     fun sync(e: EntregaLocal, onDone: ((Boolean) -> Unit)? = null) {
         status = "VERIFICANDO CONEXÃO..."
         if (e.id == 0L) { status = "ERRO: ID LOCAL INVÁLIDO"; onDone?.invoke(false); return }

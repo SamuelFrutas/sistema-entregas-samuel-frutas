@@ -18,6 +18,16 @@ class FirebaseSync(
         private set
 
     fun pull(e: EntregaLocal, onDone: ((Boolean) -> Unit)? = null) {
+        if (dbLocal.temExclusaoPendente(e.id)) {
+            status = "EXCLUSÃO PENDENTE LOCAL"
+            onDone?.invoke(false)
+            return
+        }
+        if (dbLocal.sincronizacaoPendente(e.id)) {
+            status = "ALTERAÇÃO LOCAL PENDENTE"
+            onDone?.invoke(false)
+            return
+        }
         if (e.id == 0L) { status = "ERRO: ID LOCAL INVÁLIDO"; onDone?.invoke(false); return }
         ensureAuth { ok, authError ->
             if (!ok) {
@@ -79,8 +89,14 @@ class FirebaseSync(
                     for (change in snapshot.documentChanges) {
                         val doc = change.document
                         val id = doc.id.toLongOrNull() ?: continue
+                        if (dbLocal.temExclusaoPendente(id)) {
+                            continue
+                        }
                         if (change.type.name == "REMOVED") {
                             dbLocal.excluir(id)
+                            continue
+                        }
+                        if (dbLocal.sincronizacaoPendente(id)) {
                             continue
                         }
                         val e = EntregaLocal(
@@ -102,7 +118,21 @@ class FirebaseSync(
                         )
                         dbLocal.sincronizarDoFirestore(e)
                     }
+                    processarExclusoesPendentes()
                     status = "SINCRONIZADO"
+                }
+        }
+    }
+
+    private fun processarExclusoesPendentes() {
+        dbLocal.listarExclusoesPendentes().forEach { id ->
+            firestore.collection("entregas").document(id.toString()).delete()
+                .addOnSuccessListener {
+                    dbLocal.limparExclusaoPendente(id)
+                    status = "SINCRONIZADO"
+                }
+                .addOnFailureListener {
+                    status = "PENDENTE DE EXCLUSÃO"
                 }
         }
     }
@@ -178,6 +208,7 @@ class FirebaseSync(
             }
             firestore.collection("entregas").document(eId.toString()).delete()
                 .addOnSuccessListener {
+                    dbLocal.limparExclusaoPendente(eId)
                     status = "SINCRONIZADO"
                     onDone?.invoke(true)
                 }

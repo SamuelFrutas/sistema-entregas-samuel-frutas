@@ -252,7 +252,10 @@ async function startCharge(id){
     if(nome){
       const matches=findContactsForName(e);
       if(matches.length>=1){
-        openChargeMatchesPicker(e,matches,"Encontramos "+matches.length+" contato(s) para o nome “"+nome+"”.");
+        // Para referência/nome, sempre usamos o seletor com campo de pesquisa.
+        // O nome informado pelo entregador entra apenas como busca inicial;
+        // o usuário pode apagar e pesquisar qualquer outro contato.
+        openChargeContactPicker(e,nome);
         return;
       }
     }

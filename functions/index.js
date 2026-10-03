@@ -163,6 +163,13 @@ exports.googleContacts = onRequest(
         return;
       }
 
+      if (req.method === "GET" && path.endsWith("/cached-contacts")) {
+        const snap = await connectionRef.collection("contacts").get();
+        const contacts = snap.docs.map(doc => doc.data());
+        sendJson(res, 200, { contacts, count: contacts.length });
+        return;
+      }
+
       if (req.method === "GET" && path.endsWith("/contacts")) {
         const stored = await connectionRef.get();
         if (!stored.exists || !stored.data()?.refreshToken) {

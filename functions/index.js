@@ -188,9 +188,39 @@ exports.googleContacts = onRequest(
           resourceName: person.resourceName || "",
           names: (person.names || []).map(n => ({ displayName: n.displayName || "" })),
           phoneNumbers: (person.phoneNumbers || []).map(p => ({ value: p.value || "" }))
-        }));
+        })).filter(person => person.names.length > 0 || person.phoneNumbers.length > 0);
 
-        sendJson(res, 200, { contacts: safeContacts });
+        const contactsRef = connectionRef.collection("contacts");
+        const existing = await contactsRef.get();
+        const incomingIds = new Set();
+        const batch = db.batch();
+
+        for (const person of safeContacts) {
+          const key = person.resourceName || Buffer.from(
+            (person.names[0]?.displayName || "") + "|" + (person.phoneNumbers[0]?.value || "")
+          ).toString("base64url").slice(0, 80);
+          incomingIds.add(key);
+          batch.set(contactsRef.doc(key), {
+            resourceName: person.resourceName || "",
+            names: person.names,
+            phoneNumbers: person.phoneNumbers,
+            updatedAt: FieldValue.serverTimestamp()
+          }, { merge: true });
+        }
+
+        for (const doc of existing.docs) {
+          if (!incomingIds.has(doc.id)) batch.delete(doc.ref);
+        }
+
+        batch.set(connectionRef, {
+          contactCount: safeContacts.length,
+          contactsUpdatedAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        await batch.commit();
+
+        sendJson(res, 200, { contacts: safeContacts, count: safeContacts.length });
         return;
       }
 

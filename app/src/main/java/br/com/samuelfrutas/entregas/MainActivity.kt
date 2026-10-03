@@ -926,7 +926,7 @@ private fun myDay() {
         val cached = getSharedPreferences("entregador_config", MODE_PRIVATE)
             .getLong("valor_entrega_entregador_centavos", 0L)
         renderMyDay(cached)
-        firebaseSync.getValorPorEntrega { remote ->
+        firebaseSync.getValorPorEntrega(today) { remote ->
             if (remote != null) {
                 getSharedPreferences("entregador_config", MODE_PRIVATE)
                     .edit()
@@ -946,7 +946,7 @@ private fun myDay() {
         val tips = realizadas.sumOf { it.caixinhaCentavos }
         val ganhoDoDia = valorPorEntrega * done
         val totalGeral = ganhoDoDia + tips
-        val ganhoText = if (valorPorEntrega > 0L) centsText(ganhoDoDia) else "Valor por entrega não configurado"
+        val ganhoText = centsText(ganhoDoDia)
 
         add(iconTitle(R.drawable.ic_check_circle, "ENTREGAS REALIZADAS", done.toString()).apply {
             background = rounded(Color.rgb(6, 60, 95), 16f, Color.rgb(35, 76, 102))
@@ -958,9 +958,7 @@ private fun myDay() {
         add(iconTitle(R.drawable.ic_add, "CAIXINHAS RECEBIDAS", centsText(tips)).apply {
             background = rounded(Color.rgb(73, 57, 3), 16f, Color.rgb(35, 76, 102))
         }, 8)
-        add(iconTitle(R.drawable.ic_check_circle, "TOTAL GERAL", centsText(totalGeral) + "\n" +
-            (if (valorPorEntrega > 0L) centsText(ganhoDoDia) + " em entregas + " + centsText(tips) + " em caixinhas"
-             else centsText(tips) + " em caixinhas")).apply {
+        add(iconTitle(R.drawable.ic_check_circle, "TOTAL GERAL", centsText(totalGeral)).apply {
             background = rounded(Color.rgb(6, 60, 95), 16f, Color.rgb(35, 76, 102))
         }, 8)
         add(iconTitle(R.drawable.ic_pending, "ENTREGAS PENDENTES", pendingCount.toString()).apply {

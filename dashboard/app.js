@@ -28,11 +28,13 @@ function contactMatches(person,key){
   return normalizeAddressKey(name).includes(normalizeAddressKey(key));
 }
 function googleContactName(person){return person.names?.[0]?.displayName||"Contato sem nome";}
-function chargeMessage(e){return "Total do investimento na sua saúde : "+money(e.valorCompraCentavos);}
-function openWhatsappCharge(e,person){
+async function openWhatsappCharge(e,person){
   const phone=normalizeWhatsapp(contactPhone(person));
   if(!phone){alert("Este contato não possui telefone cadastrado.");return;}
-  window.open("https://wa.me/"+phone+"?text="+encodeURIComponent(chargeMessage(e)),"_blank","noopener,noreferrer");
+  const config=await getConfig();
+  const template=config.mensagemCobranca||"Total do investimento na sua saúde : {{valor}}";
+  const message=template.replace(/\{\{\s*valor\s*\}\}/gi,money(e.valorCompraCentavos));
+  window.open("https://wa.me/"+phone+"?text="+encodeURIComponent(message),"_blank","noopener,noreferrer");
 }
 function googleContactsStatusText(){
   return googleContactsCache.length ? googleContactsCache.length+" contatos no banco" : "Contatos ainda não sincronizados";
@@ -377,18 +379,18 @@ async function showFinance(){
 
 function loadConfig(){return {valorEntregaCentavos:0};}
 async function getConfig(){
-  try{const snap=await db.collection("configuracoes").doc("entregador").get();return snap.exists?Object.assign({valorEntregaCentavos:0},snap.data()):loadConfig();}
-  catch(e){return loadConfig();}
+  try{const snap=await db.collection("configuracoes").doc("entregador").get();return snap.exists?Object.assign({valorEntregaCentavos:0,mensagemCobranca:"Total do investimento na sua saúde : {{valor}}"},snap.data()):Object.assign(loadConfig(),{mensagemCobranca:"Total do investimento na sua saúde : {{valor}}"});}
+  catch(e){return Object.assign(loadConfig(),{mensagemCobranca:"Total do investimento na sua saúde : {{valor}}"});}
 }
 async function saveConfig(){
   const cents=parseMoney(document.querySelector("#valorEntrega").value),msg=document.querySelector("#saveMsg");
   if(cents===null){msg.textContent="Informe um valor válido.";msg.className="save-msg error";return;}
-  try{await db.collection("configuracoes").doc("entregador").set({valorEntregaCentavos:cents,atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});document.querySelector("#currentValue").textContent=money(cents);msg.textContent="Configuração salva no Firebase.";msg.className="save-msg ok";}
+  try{const mensagemCobranca=(document.querySelector("#mensagemCobranca").value||"").trim();if(!mensagemCobranca){msg.textContent="Informe a mensagem de cobrança.";msg.className="save-msg error";return;}await db.collection("configuracoes").doc("entregador").set({valorEntregaCentavos:cents,mensagemCobranca,atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});document.querySelector("#currentValue").textContent=money(cents);msg.textContent="Configuração salva no Firebase.";msg.className="save-msg ok";}
   catch(e){msg.textContent="Não foi possível salvar no Firebase.";msg.className="save-msg error";}
 }
 async function showSettings(){
   setActive("settings");setTitle("Configurações");const c=await getConfig();
-  document.querySelector("#content").innerHTML='<div class="page-head"><div><small>CONFIGURAÇÕES</small><h2>Entregador</h2><p>Defina quanto o entregador recebe por cada entrega realizada.</p></div></div><div class="settings-grid"><article class="panel settings-card"><div class="setting-icon">R$</div><div><small>VALOR POR ENTREGA</small><h3>Pagamento do entregador</h3><p>Este valor será usado no cálculo do total a pagar. Não altera o valor da compra do cliente.</p></div><label class="field"><span>Valor por entrega</span><input id="valorEntrega" inputmode="decimal" placeholder="0,00" value="'+(c.valorEntregaCentavos?(c.valorEntregaCentavos/100).toLocaleString("pt-BR",{minimumFractionDigits:2}):"")+'"></label><button class="primary" id="saveConfig">SALVAR CONFIGURAÇÃO</button><div id="saveMsg" class="save-msg"></div></article><article class="panel info-card"><small>SISTEMA</small><h3>Conta do responsável</h3><p>Esta área controla as configurações do Dashboard.</p><button class="primary" id="logoutButton">SAIR DO SISTEMA</button><div class="preview"><small>VALOR ATUAL</small><strong id="currentValue">'+money(c.valorEntregaCentavos)+'</strong></div></article></div>';
+  document.querySelector("#content").innerHTML='<div class="page-head"><div><small>CONFIGURAÇÕES</small><h2>Entregador</h2><p>Defina quanto o entregador recebe por cada entrega e controle a mensagem enviada na cobrança.</p></div></div><div class="settings-grid"><article class="panel settings-card"><div class="setting-icon">R$</div><div><small>VALOR POR ENTREGA</small><h3>Pagamento do entregador</h3><p>Este valor será usado no cálculo do total a pagar. Não altera o valor da compra do cliente.</p></div><label class="field"><span>Valor por entrega</span><input id="valorEntrega" inputmode="decimal" placeholder="0,00" value="'+(c.valorEntregaCentavos?(c.valorEntregaCentavos/100).toLocaleString("pt-BR",{minimumFractionDigits:2}):"")+'"></label><div style="height:1px;background:rgba(91,154,255,.15);margin:8px 0 2px"></div><div><small>MENSAGEM DE COBRANÇA</small><h3>WhatsApp do cliente</h3><p>Use <b>{{valor}}</b> no lugar onde o valor da compra deve aparecer.</p></div><label class="field"><span>Mensagem enviada</span><textarea id="mensagemCobranca" rows="4" placeholder="Total do investimento na sua saúde : {{valor}}">'+esc(c.mensagemCobranca||"Total do investimento na sua saúde : {{valor}}")+'</textarea></label><button class="primary" id="saveConfig">SALVAR CONFIGURAÇÃO</button><div id="saveMsg" class="save-msg"></div></article><article class="panel info-card"><small>SISTEMA</small><h3>Conta do responsável</h3><p>Esta área controla as configurações do Dashboard.</p><button class="primary" id="logoutButton">SAIR DO SISTEMA</button><div class="preview"><small>VALOR ATUAL</small><strong id="currentValue">'+money(c.valorEntregaCentavos)+'</strong></div></article></div>';
   document.querySelector("#saveConfig").onclick=saveConfig;document.querySelector("#logoutButton").onclick=logout;
 }
 

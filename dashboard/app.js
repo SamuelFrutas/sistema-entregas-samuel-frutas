@@ -208,12 +208,19 @@ async function startCharge(id){
     return;
   }
 
+  // Se não encontrou pelo endereço, qualquer texto em "endereço/referência"
+  // também pode ser o nome do cliente (inclusive quando semEndereco não veio salvo).
   const nomeInformado=String(e.enderecoReferencia||"").trim();
-  if(e.semEndereco && nomeInformado){
+  if(nomeInformado){
     const porNome=googleContactsCache.filter(p=>contactPhone(p)&&contactNameMatches(p,nomeInformado));
-    if(porNome.length>=1){openChargeContactPicker(e,nomeInformado);return;}
+    if(porNome.length>=1){
+      // Mesmo com apenas 1 resultado, sempre mostra a opção para confirmação.
+      openChargeContactPicker(e,nomeInformado);
+      return;
+    }
   }
 
+  // Só chega aqui quando não foi possível localizar nem pelo endereço nem pelo nome.
   openChargeContactPicker(e,"");
 }
 async function markCharged(id){

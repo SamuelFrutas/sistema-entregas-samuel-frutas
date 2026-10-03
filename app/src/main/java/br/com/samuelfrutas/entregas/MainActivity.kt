@@ -590,7 +590,7 @@ class MainActivity : Activity() {
             setPadding(dp(8), dp(8), dp(8), dp(8))
             layoutParams = LinearLayout.LayoutParams(dp(62), dp(154))
         }
-        side.addView(txt("#" + e.id.toString().padStart(3, '0'), 16f, Color.WHITE, true).apply {
+        side.addView(txt("#" + numero.toString().padStart(3, '0'), 16f, Color.WHITE, true).apply {
             gravity = Gravity.CENTER
         })
         side.addView(icon(R.drawable.ic_pending, 32))

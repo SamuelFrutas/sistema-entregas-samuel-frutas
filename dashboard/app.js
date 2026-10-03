@@ -62,34 +62,50 @@ function contactNameMatches(person,term){
   if(!q)return false;
   return name===q || name.startsWith(q+" ") || name.includes(" "+q) || name.includes(q);
 }
-function openChargeContactPicker(e,initialTerm=""){
+async function openChargeContactPicker(e,initialTerm=""){
   const overlay=document.createElement("div");
   overlay.className="modal-overlay";
-  overlay.innerHTML='<div class="modal-card charge-modal"><div class="modal-head"><div><small>COBRANÇA</small><h2>Selecionar cliente</h2><p>Escolha o contato desta entrega. Essa escolha será usada somente nesta cobrança.</p></div><button class="modal-close" id="closeChargeContact">×</button></div><input id="chargeContactSearch" class="charge-contact-search" placeholder="Pesquisar nome ou telefone" value="'+esc(initialTerm)+'"><div class="contact-options" id="chargeContactOptions"></div></div>';
+  overlay.innerHTML='<div class="modal-card charge-modal"><div class="modal-head"><div><small>COBRANÇA</small><h2>Selecionar cliente</h2><p>Escolha o contato desta entrega. Essa escolha será usada somente nesta cobrança.</p></div><button class="modal-close" id="closeChargeContact">×</button></div><input id="chargeContactSearch" class="charge-contact-search" type="search" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" placeholder="Pesquisar nome ou telefone"><div class="contact-options" id="chargeContactOptions"></div></div>';
   document.body.appendChild(overlay);
   const search=overlay.querySelector("#chargeContactSearch");
   const options=overlay.querySelector("#chargeContactOptions");
+
+  // O nome da referência é apenas o valor inicial. Depois que o modal abre,
+  // o campo é uma pesquisa completamente independente e pode ser apagado/trocado.
+  search.value=String(initialTerm||"");
+
+  const normalizeSearch=v=>String(v??"").trim().toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/\\s+/g," ");
   const render=()=>{
-    const normalizeSearch=v=>String(v||"").trim().toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"");
     const q=normalizeSearch(search.value);
-    // A busca manual sempre consulta TODOS os contatos. O resultado inicial por nome
-    // não pode limitar a busca, porque o nome digitado pelo entregador pode estar errado.
-    const list=googleContactsCache.filter(p=>{
-      if(!q)return true;
-      return normalizeSearch(contactSearchText(p)).includes(q);
-    }).slice(0,80);
-    options.innerHTML=list.length?list.map((p,i)=>'<button class="contact-option" data-contact="'+i+'"><strong>'+esc(googleContactName(p))+'</strong><span>'+esc(contactPhone(p))+'</span></button>').join(""):'<p style="padding:16px;color:#9aa6b2">Nenhum contato encontrado.</p>';
+    const list=googleContactsCache.filter(p=>!q||normalizeSearch(contactSearchText(p)).includes(q)).slice(0,80);
+    options.innerHTML=list.length
+      ?list.map((p,i)=>'<button class="contact-option" data-contact="'+i+'"><strong>'+esc(googleContactName(p))+'</strong><span>'+esc(contactPhone(p)||"Sem telefone")+'</span></button>').join("")
+      :'<p style="padding:16px;color:#9aa6b2">Nenhum contato encontrado.</p>';
     options.querySelectorAll(".contact-option").forEach(btn=>btn.onclick=()=>{
       const person=list[Number(btn.dataset.contact)];
       overlay.remove();
+      if(!contactPhone(person)){alert("Este contato não possui telefone cadastrado.");return;}
       openWhatsappCharge(e,person);
     });
   };
+
+  // Escuta input + teclado para garantir que apagar/trocar o texto sempre atualize a lista.
   search.addEventListener("input",render);
+  search.addEventListener("keyup",render);
+  search.addEventListener("change",render);
   overlay.querySelector("#closeChargeContact").onclick=()=>overlay.remove();
+
+  // Recarrega do Firestore para a pesquisa manual não depender de uma lista antiga.
+  try{
+    const snap=await db.collection("contatosGoogle").get();
+    googleContactsCache=snap.docs.map(d=>d.data());
+    googleContactsDbLoaded=true;
+  }catch(err){}
+
   render();
-  setTimeout(()=>{search.focus();search.select();},50);
+  setTimeout(()=>{search.focus();search.setSelectionRange(search.value.length,search.value.length);},50);
 }
+
 function googleContactsStatusText(){
   return googleContactsCache.length ? googleContactsCache.length+" contatos no banco" : "Contatos ainda não sincronizados";
 }

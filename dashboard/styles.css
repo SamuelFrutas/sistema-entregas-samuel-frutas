@@ -24,3 +24,6 @@
   .home-stats article span{font-size:10px}
   .home-summary-rows{grid-template-columns:1fr}
 }
+
+.charge-btn,.charged-btn{font-size:13px!important;padding:12px 16px!important;min-height:44px!important;font-weight:900!important}
+@media(max-width:800px){.charge-btn,.charged-btn{font-size:12px!important;padding:12px 13px!important;min-height:46px!important}}

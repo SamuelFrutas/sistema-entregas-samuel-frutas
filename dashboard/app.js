@@ -4,10 +4,10 @@ let currentUser=null;
 let entregasUnsub=null;
 let currentDocs=[];
 
-let googleContactsToken=null;
 let googleContactsCache=[];
-let googleContactsTokenClient=null;
+let googleContactsCodeClient=null;
 const GOOGLE_CONTACTS_CLIENT_ID = window.FIREBASE_CONFIG?.googleContactsClientId || "";
+const GOOGLE_CONTACTS_BACKEND = window.FIREBASE_CONFIG?.googleContactsBackendUrl || "https://us-central1-sistema-de-entregas-bb409.cloudfunctions.net/googleContacts";
 const GOOGLE_CONTACTS_SCOPE = "https://www.googleapis.com/auth/contacts.readonly";
 
 function normalizeAddressKey(value){return String(value||"").toUpperCase().replace(/\s+/g,"").replace(/-/g,"/");}
@@ -33,60 +33,110 @@ function openWhatsappCharge(e,person){
   if(!phone){alert("Este contato não possui telefone cadastrado.");return;}
   window.open("https://wa.me/"+phone+"?text="+encodeURIComponent(chargeMessage(e)),"_blank","noopener,noreferrer");
 }
-function googleContactsStatusText(){return googleContactsCache.length ? googleContactsCache.length+" contatos carregados" : "Contatos do Google não conectados";}
-async function fetchGoogleContacts(token){
-  const people=[]; let pageToken="";
-  do{
-    const params=new URLSearchParams({personFields:"names,phoneNumbers",pageSize:"500"});
-    if(pageToken) params.set("pageToken",pageToken);
-    const res=await fetch("https://people.googleapis.com/v1/people/me/connections?"+params.toString(),{headers:{Authorization:"Bearer "+token}});
-    if(res.status===401) throw new Error("AUTH_EXPIRED");
-    if(!res.ok) throw new Error("Google Contacts: HTTP "+res.status);
-    const data=await res.json(); people.push(...(data.connections||[])); pageToken=data.nextPageToken||"";
-  }while(pageToken);
-  googleContactsCache=people; googleContactsToken=token; return people;
+function googleContactsStatusText(){return googleContactsCache.length ? googleContactsCache.length+" contatos carregados" : "Google Contacts desconectado";}
+
+async function firebaseIdToken(){
+  if(!auth?.currentUser) throw new Error("AUTH_REQUIRED");
+  return auth.currentUser.getIdToken();
 }
-function setGoogleContactsMessage(msg){const el=document.querySelector("#googleContactsMsg");if(el)el.textContent=msg;}
-function initGoogleContactsClient(){
+
+async function fetchGoogleContactsBackend(){
+  const token=await firebaseIdToken();
+  const res=await fetch(GOOGLE_CONTACTS_BACKEND+"/contacts",{
+    headers:{Authorization:"Bearer "+token}
+  });
+  const data=await res.json().catch(()=>({}));
+  if(res.status===404 && data.error==="GOOGLE_NOT_CONNECTED") throw new Error("GOOGLE_NOT_CONNECTED");
+  if(res.status===401 && data.error==="GOOGLE_RECONNECT_REQUIRED") throw new Error("GOOGLE_RECONNECT_REQUIRED");
+  if(!res.ok) throw new Error(data.error||"GOOGLE_CONTACTS_ERROR");
+  googleContactsCache=Array.isArray(data.contacts)?data.contacts:[];
+  return googleContactsCache;
+}
+
+function setGoogleContactsMessage(msg){
+  const el=document.querySelector("#googleContactsMsg");
+  if(el)el.textContent=msg;
+}
+
+function initGoogleContactsCodeClient(){
   if(!GOOGLE_CONTACTS_CLIENT_ID || !window.google?.accounts?.oauth2) return false;
-  if(!googleContactsTokenClient){
-    googleContactsTokenClient=google.accounts.oauth2.initTokenClient({
-      client_id:GOOGLE_CONTACTS_CLIENT_ID,scope:GOOGLE_CONTACTS_SCOPE,
-      callback:async response=>{
-        if(response.error){setGoogleContactsMessage("Não foi possível reconectar o Google Contacts automaticamente.");return;}
-        try{
-          setGoogleContactsMessage("Carregando contatos do Google...");
-          await fetchGoogleContacts(response.access_token);
-          localStorage.setItem("samuel_google_contacts_connected","1");
-          showCharges();
-        }catch(err){
-          setGoogleContactsMessage(err.message==="AUTH_EXPIRED"?"A autorização expirou. Conecte novamente.":"Erro ao carregar os contatos.");
-        }
+  if(googleContactsCodeClient) return true;
+  googleContactsCodeClient=google.accounts.oauth2.initCodeClient({
+    client_id:GOOGLE_CONTACTS_CLIENT_ID,
+    scope:GOOGLE_CONTACTS_SCOPE,
+    ux_mode:"popup",
+    callback:async response=>{
+      if(response.error){
+        setGoogleContactsMessage("Não foi possível autorizar o Google Contacts.");
+        return;
       }
-    });
-  }
+      try{
+        setGoogleContactsMessage("Salvando autorização do Google...");
+        const token=await firebaseIdToken();
+        const save=await fetch(GOOGLE_CONTACTS_BACKEND+"/authorize",{
+          method:"POST",
+          headers:{
+            "Content-Type":"application/json",
+            "Authorization":"Bearer "+token,
+            "X-Requested-With":"XmlHttpRequest"
+          },
+          body:JSON.stringify({code:response.code})
+        });
+        const data=await save.json().catch(()=>({}));
+        if(!save.ok) throw new Error(data.error||"GOOGLE_AUTHORIZE_ERROR");
+        setGoogleContactsMessage("Autorização salva. Carregando contatos...");
+        await fetchGoogleContactsBackend();
+        showCharges();
+      }catch(err){
+        setGoogleContactsMessage("Não foi possível concluir a conexão com o Google.");
+      }
+    },
+    error_callback:error=>{
+      setGoogleContactsMessage(error?.type==="popup_closed"?"Autorização cancelada.":"Não foi possível abrir a autorização do Google.");
+    }
+  });
   return true;
 }
+
 function connectGoogleContacts(){
-  if(!initGoogleContactsClient()){
-    if(!GOOGLE_CONTACTS_CLIENT_ID) alert("A integração está preparada, mas falta cadastrar o OAuth Client ID do Google Cloud.");
+  if(!initGoogleContactsCodeClient()){
+    if(!GOOGLE_CONTACTS_CLIENT_ID) alert("A integração está preparada, mas falta o OAuth Client ID do Google Cloud.");
     else alert("O componente do Google ainda está carregando. Tente novamente.");
     return;
   }
-  googleContactsTokenClient.requestAccessToken({prompt:"consent"});
+  googleContactsCodeClient.requestCode();
 }
-function reconnectGoogleContactsSilently(){
-  if(!localStorage.getItem("samuel_google_contacts_connected")) return;
-  if(!initGoogleContactsClient()) return;
-  googleContactsTokenClient.requestAccessToken({prompt:""});
+
+async function loadGoogleContactsSilently(){
+  try{
+    setGoogleContactsMessage("Verificando conexão com o Google...");
+    await fetchGoogleContactsBackend();
+    showCharges();
+    return true;
+  }catch(err){
+    if(err.message==="GOOGLE_NOT_CONNECTED"){
+      setGoogleContactsMessage("Conecte o Google uma única vez para liberar as cobranças automáticas.");
+    }else if(err.message==="GOOGLE_RECONNECT_REQUIRED"){
+      googleContactsCache=[];
+      setGoogleContactsMessage("A autorização do Google expirou ou foi revogada. Conecte novamente.");
+    }else{
+      setGoogleContactsMessage("Não foi possível carregar os contatos do Google.");
+    }
+    return false;
+  }
 }
+
 function findContactsForDelivery(e){
   const key=deliveryAddressKey(e); if(!key)return [];
   return googleContactsCache.filter(p=>contactMatches(p,key)&&contactPhone(p));
 }
-function startCharge(id){
+
+async function startCharge(id){
   const e=currentDocs.find(x=>x.id===id);if(!e)return;
-  if(!googleContactsCache.length){connectGoogleContacts();return;}
+  if(!googleContactsCache.length){
+    const loaded=await loadGoogleContactsSilently();
+    if(!loaded){connectGoogleContacts();return;}
+  }
   const matches=findContactsForDelivery(e);
   if(!matches.length){alert("Nenhum contato do Google foi encontrado com o endereço "+deliveryAddressKey(e)+".");return;}
   if(matches.length===1){openWhatsappCharge(e,matches[0]);return;}
@@ -96,6 +146,7 @@ function startCharge(id){
   document.getElementById("closeCharge").onclick=()=>overlay.remove();
   overlay.querySelectorAll(".contact-option").forEach(btn=>btn.onclick=()=>{openWhatsappCharge(e,matches[Number(btn.dataset.contact)]);overlay.remove();});
 }
+
 function chargeAction(e){
   if(!e.realizada || e.resultadoPagamento==="PAGO" || e.pagamentoInicial!=="NAO_PAGO") return "";
   return "<button class=\"row-action charge-btn\" onclick=\"startCharge('"+esc(e.id)+"')\">COBRAR NO WHATSAPP</button>";
@@ -107,9 +158,12 @@ function renderChargeRow(e){
 function showCharges(){
   setActive("charges");setTitle("Cobranças");
   const unpaid=currentDocs.filter(e=>!!e.realizada&&e.pagamentoInicial==="NAO_PAGO"&&e.resultadoPagamento!=="PAGO");
-  document.querySelector("#content").innerHTML='<div class="page-head page-head-actions"><div><small>CLIENTES COM PAGAMENTO PENDENTE</small><h2>Cobrar pelo WhatsApp</h2><p>O sistema procura o endereço no nome do contato do Google e abre a conversa com a mensagem pronta.</p></div><button class="primary add-btn" id="googleContactsButton">'+(googleContactsCache.length?"ATUALIZAR CONTATOS":"CONECTAR GOOGLE CONTATOS")+'</button></div><div class="panel charge-connection"><div><small>GOOGLE CONTACTS</small><h3>'+esc(googleContactsStatusText())+'</h3><p id="googleContactsMsg">O endereço será procurado dentro do nome do contato, por exemplo: Márcia 1350/1/1608.</p></div></div><article class="panel"><div class="panel-head"><div><small>PAGAMENTOS</small><h3>'+unpaid.length+' pendente'+(unpaid.length===1?"":"s")+'</h3></div></div><div class="delivery-list">'+(unpaid.length?unpaid.map(renderChargeRow).join(""):renderEmpty("Nenhuma cobrança pendente."))+'</div></article>';
-  document.getElementById("googleContactsButton").onclick=connectGoogleContacts;
-  if(googleContactsCache.length===0) setTimeout(reconnectGoogleContactsSilently,250);
+  document.querySelector("#content").innerHTML='<div class="page-head page-head-actions"><div><small>CLIENTES COM PAGAMENTO PENDENTE</small><h2>Cobrar pelo WhatsApp</h2><p>O sistema procura o endereço no nome do contato do Google e abre a conversa com a mensagem pronta.</p></div><button class="primary add-btn" id="googleContactsButton">'+(googleContactsCache.length?"ATUALIZAR CONTATOS":"CONECTAR GOOGLE CONTATOS")+'</button></div><div class="panel charge-connection"><div><small>GOOGLE CONTACTS</small><h3>'+esc(googleContactsStatusText())+'</h3><p id="googleContactsMsg">A conexão fica salva no servidor; ao recarregar a página o sistema tenta carregar os contatos sem pedir autorização novamente.</p></div></div><article class="panel"><div class="panel-head"><div><small>PAGAMENTOS</small><h3>'+unpaid.length+' pendente'+(unpaid.length===1?"":"s")+'</h3></div></div><div class="delivery-list">'+(unpaid.length?unpaid.map(renderChargeRow).join(""):renderEmpty("Nenhuma cobrança pendente."))+'</div></article>';
+  document.getElementById("googleContactsButton").onclick=()=>{
+    if(googleContactsCache.length) loadGoogleContactsSilently();
+    else connectGoogleContacts();
+  };
+  if(!googleContactsCache.length) setTimeout(loadGoogleContactsSilently,250);
 }
 
 function money(c){return (Number(c||0)/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});}

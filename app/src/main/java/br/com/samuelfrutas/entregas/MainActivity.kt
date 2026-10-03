@@ -9,6 +9,8 @@ import android.text.InputType
 import android.view.Gravity
 import android.view.View
 import android.widget.*
+import com.google.firebase.appcheck.FirebaseAppCheck
+import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
@@ -38,6 +40,9 @@ class MainActivity : Activity() {
 
     override fun onCreate(state: Bundle?) {
         super.onCreate(state)
+        FirebaseAppCheck.getInstance().installAppCheckProviderFactory(
+            PlayIntegrityAppCheckProviderFactory.getInstance()
+        )
         db = EntregaDbHelper(this)
         firebaseSync = FirebaseSync(db)
         firebaseSync.startRealtimeSync()
@@ -859,7 +864,7 @@ class MainActivity : Activity() {
                 .setMessage("Essa entrega será removida do aparelho e não poderá ser recuperada.")
                 .setNegativeButton("CANCELAR", null)
                 .setPositiveButton("EXCLUIR") { _, _ ->
-                    db.excluir(e.id)
+                    db.excluirLocalPendente(e.id)
                     firebaseSync.delete(e.id)
                     pending()
                 }

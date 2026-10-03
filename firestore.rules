@@ -25,5 +25,9 @@ service cloud.firestore {
     match /configuracoes/entregador {
       allow read, write: if dashboardUser();
     }
+
+    match /contatosGoogle/{contatoId} {
+      allow read, write: if dashboardUser();
+    }
   }
 }

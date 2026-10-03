@@ -40,11 +40,10 @@ async function firebaseIdToken(){
   return auth.currentUser.getIdToken();
 }
 
-async function fetchGoogleContactsBackend(){
+async function fetchGoogleContactsBackend(refreshGoogle=false){
   const token=await firebaseIdToken();
-  const res=await fetch(GOOGLE_CONTACTS_BACKEND+"/contacts",{
-    headers:{Authorization:"Bearer "+token}
-  });
+  const endpoint=refreshGoogle?"/contacts":"/cached-contacts";
+  const res=await fetch(GOOGLE_CONTACTS_BACKEND+endpoint,{headers:{Authorization:"Bearer "+token}});
   const data=await res.json().catch(()=>({}));
   if(res.status===404 && data.error==="GOOGLE_NOT_CONNECTED") throw new Error("GOOGLE_NOT_CONNECTED");
   if(res.status===401 && data.error==="GOOGLE_RECONNECT_REQUIRED") throw new Error("GOOGLE_RECONNECT_REQUIRED");

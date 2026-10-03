@@ -511,7 +511,12 @@ function showDone(){
     const group=el.closest(".history-day");
     const key=group?.querySelector(".history-day-head small")?.textContent;
     const source=key?recentDone.filter(e=>historyDateLabel(e.dia)===key):[];
-    const pending=source.filter(e=>!e.cobrancaFeita).length;
+    const pending=source.filter(e=>
+      e.realizada &&
+      !e.cobrancaFeita &&
+      e.resultadoPagamento!=="PAGO" &&
+      (e.pagamentoInicial==="NAO_PAGO" || e.resultadoPagamento==="NAO_PAGO")
+    ).length;
     el.textContent=pending+" cobranças pendentes";
     el.style.color=pending===0?"var(--green)":"var(--danger)";
   });

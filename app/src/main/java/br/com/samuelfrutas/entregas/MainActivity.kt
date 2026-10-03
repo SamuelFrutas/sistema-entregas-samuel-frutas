@@ -927,10 +927,12 @@ private fun myDay() {
         val list = db.listarDia(today)
         val done = list.count { it.realizada }
         val pendingCount = list.count { !it.realizada }
-        val tips = list.filter { it.realizada }.sumOf { it.caixinhaCentavos }
+        val realizadas = list.filter { it.realizada }
+        val tips = realizadas.sumOf { it.caixinhaCentavos }
         val valorPorEntrega = getSharedPreferences("entregador_config", MODE_PRIVATE)
             .getLong("valor_entrega_entregador_centavos", 0L)
-        val ganhoDoDia = valorPorEntrega * list.size
+        val ganhoDoDia = valorPorEntrega * done
+        val totalGeral = ganhoDoDia + tips
         val ganhoText = if (valorPorEntrega > 0L) {
             centsText(ganhoDoDia)
         } else {
@@ -945,6 +947,11 @@ private fun myDay() {
         }, 8)
         add(iconTitle(R.drawable.ic_add, "CAIXINHAS RECEBIDAS", centsText(tips)).apply {
             background = rounded(Color.rgb(73, 57, 3), 16f, Color.rgb(35, 76, 102))
+        }, 8)
+        add(iconTitle(R.drawable.ic_check_circle, "TOTAL GERAL", centsText(totalGeral) + "\n" +
+            (if (valorPorEntrega > 0L) centsText(ganhoDoDia) + " em entregas + " + centsText(tips) + " em caixinhas"
+             else centsText(tips) + " em caixinhas")).apply {
+            background = rounded(Color.rgb(6, 60, 95), 16f, Color.rgb(35, 76, 102))
         }, 8)
         add(iconTitle(R.drawable.ic_pending, "ENTREGAS PENDENTES", pendingCount.toString()).apply {
             background = rounded(Color.rgb(5, 72, 48), 16f, Color.rgb(35, 76, 102))

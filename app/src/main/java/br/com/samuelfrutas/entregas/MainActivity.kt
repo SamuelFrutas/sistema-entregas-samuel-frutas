@@ -923,26 +923,36 @@ class MainActivity : Activity() {
     }
 
 private fun myDay() {
+        val cached = getSharedPreferences("entregador_config", MODE_PRIVATE)
+            .getLong("valor_entrega_entregador_centavos", 0L)
+        renderMyDay(cached)
+        firebaseSync.getValorPorEntrega { remote ->
+            if (remote != null) {
+                getSharedPreferences("entregador_config", MODE_PRIVATE)
+                    .edit()
+                    .putLong("valor_entrega_entregador_centavos", remote)
+                    .apply()
+                runOnUiThread { renderMyDay(remote) }
+            }
+        }
+    }
+
+    private fun renderMyDay(valorPorEntrega: Long) {
         base("Meu Dia", { home() })
         val list = db.listarDia(today)
         val done = list.count { it.realizada }
         val pendingCount = list.count { !it.realizada }
         val realizadas = list.filter { it.realizada }
         val tips = realizadas.sumOf { it.caixinhaCentavos }
-        val valorPorEntrega = getSharedPreferences("entregador_config", MODE_PRIVATE)
-            .getLong("valor_entrega_entregador_centavos", 0L)
         val ganhoDoDia = valorPorEntrega * done
         val totalGeral = ganhoDoDia + tips
-        val ganhoText = if (valorPorEntrega > 0L) {
-            centsText(ganhoDoDia)
-        } else {
-            "Valor por entrega não configurado"
-        }
+        val ganhoText = if (valorPorEntrega > 0L) centsText(ganhoDoDia) else "Valor por entrega não configurado"
+
         add(iconTitle(R.drawable.ic_check_circle, "ENTREGAS REALIZADAS", done.toString()).apply {
             background = rounded(Color.rgb(6, 60, 95), 16f, Color.rgb(35, 76, 102))
         }, 8)
         add(iconTitle(R.drawable.ic_truck, "VALOR DO ENTREGADOR", ganhoText + "\n" +
-            (if (valorPorEntrega > 0L) centsText(valorPorEntrega) + " × " + list.size + " entregas" else "Configure no dashboard web")).apply {
+            (if (valorPorEntrega > 0L) centsText(valorPorEntrega) + " × " + done + " entregas" else "Configure no dashboard web")).apply {
             background = rounded(Color.rgb(66, 22, 105), 16f, Color.rgb(35, 76, 102))
         }, 8)
         add(iconTitle(R.drawable.ic_add, "CAIXINHAS RECEBIDAS", centsText(tips)).apply {

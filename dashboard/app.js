@@ -49,7 +49,7 @@ function contactNameMatches(person,term){
   if(!q)return false;
   return name===q || name.startsWith(q+" ") || name.includes(" "+q) || name.includes(q);
 }
-function openChargeContactPicker(e,initialTerm=""){
+function openChargeContactPicker(e,initialTerm="",presetContacts=null){
   const overlay=document.createElement("div");
   overlay.className="modal-overlay";
   overlay.innerHTML='<div class="modal-card charge-modal"><div class="modal-head"><div><small>COBRANÇA</small><h2>Selecionar cliente</h2><p>Escolha o contato desta entrega. Essa escolha será usada somente nesta cobrança.</p></div><button class="modal-close" id="closeChargeContact">×</button></div><input id="chargeContactSearch" class="charge-contact-search" placeholder="Pesquisar nome ou telefone" value="'+esc(initialTerm)+'"><div class="contact-options" id="chargeContactOptions"></div></div>';
@@ -58,7 +58,8 @@ function openChargeContactPicker(e,initialTerm=""){
   const options=overlay.querySelector("#chargeContactOptions");
   const render=()=>{
     const q=String(search.value||"").trim().toLocaleLowerCase("pt-BR");
-    const list=googleContactsCache.filter(p=>contactPhone(p)&&(!q||contactSearchText(p).includes(q))).slice(0,80);
+    const source=presetContacts||googleContactsCache;
+    const list=source.filter(p=>contactPhone(p)&&(!q||contactSearchText(p).includes(q))).slice(0,80);
     options.innerHTML=list.length?list.map((p,i)=>'<button class="contact-option" data-contact="'+i+'"><strong>'+esc(googleContactName(p))+'</strong><span>'+esc(contactPhone(p))+'</span></button>').join(""):'<p style="padding:16px;color:#9aa6b2">Nenhum contato encontrado.</p>';
     options.querySelectorAll(".contact-option").forEach(btn=>btn.onclick=()=>{
       const person=list[Number(btn.dataset.contact)];
@@ -214,8 +215,9 @@ async function startCharge(id){
   if(nomeInformado){
     const porNome=googleContactsCache.filter(p=>contactPhone(p)&&contactNameMatches(p,nomeInformado));
     if(porNome.length>=1){
+      // Passa os resultados encontrados diretamente para a lista, sem depender de uma segunda filtragem.
       // Mesmo com apenas 1 resultado, sempre mostra a opção para confirmação.
-      openChargeContactPicker(e,nomeInformado);
+      openChargeContactPicker(e,nomeInformado,porNome);
       return;
     }
   }

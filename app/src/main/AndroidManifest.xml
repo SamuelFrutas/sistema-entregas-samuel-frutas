@@ -4,6 +4,7 @@
     <application
         android:theme="@style/AppTheme"
         android:label="Entregas Samuel Frutas"
+        android:icon="@drawable/ic_launcher"
         android:allowBackup="false"
         android:supportsRtl="true">
         <activity

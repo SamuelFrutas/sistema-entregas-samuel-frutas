@@ -33,7 +33,7 @@ function openWhatsappCharge(e,person){
   if(!phone){alert("Este contato não possui telefone cadastrado.");return;}
   window.open("https://wa.me/"+phone+"?text="+encodeURIComponent(chargeMessage(e)),"_blank","noopener,noreferrer");
 }
-function googleContactsStatusText(){return googleContactsCache.length ? googleContactsCache.length+" contatos carregados" : "Google Contacts desconectado";}
+function googleContactsStatusText(){return googleContactsCache.length ? googleContactsCache.length+" contatos no banco" : "Contatos ainda não sincronizados";}
 
 async function firebaseIdToken(){
   if(!auth?.currentUser) throw new Error("AUTH_REQUIRED");

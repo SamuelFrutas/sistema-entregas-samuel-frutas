@@ -19,7 +19,10 @@ function deliveryAddressKey(e){
   const apartamento=normalizeAddressKey(e.apartamento);
   return bloco ? predio+"/"+bloco+"/"+apartamento : predio+"/"+apartamento;
 }
-function contactPhone(person){return (person.phoneNumbers||[]).map(p=>p.value||"").find(Boolean)||"";}
+function contactPhone(person){
+  return (person.phoneNumbers||[]).map(p=>p.value||"").find(Boolean)
+    || String(person.telefone||person.phone||"").trim();
+}
 function normalizeWhatsapp(phone){
   let n=String(phone||"").replace(/\D/g,"");
   if(n.startsWith("00")) n=n.slice(2);
@@ -30,7 +33,9 @@ function contactMatches(person,key){
   const name=person.names?.[0]?.displayName||"";
   return normalizeAddressKey(name).includes(normalizeAddressKey(key));
 }
-function googleContactName(person){return person.names?.[0]?.displayName||"Contato sem nome";}
+function googleContactName(person){
+  return String(person.names?.[0]?.displayName||person.nome||person.name||"Contato sem nome").trim();
+}
 async function openWhatsappCharge(e,person){
   const phone=normalizeWhatsapp(contactPhone(person));
   if(!phone){alert("Este contato não possui telefone cadastrado.");return;}

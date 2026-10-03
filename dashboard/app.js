@@ -343,24 +343,16 @@ function showDeliveries(){
   if(addButton) addButton.onclick=openNewDelivery;
 }
 
-function dateKeyOffset(offset){
-  const d=new Date();
-  d.setHours(0,0,0,0);
-  d.setDate(d.getDate()-offset);
-  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-}
-function historyDateLabel(key,offset){
-  if(offset===0)return "Hoje";
-  if(offset===1)return "Ontem";
-  if(offset===2)return "Anteontem";
+function historyDateLabel(key){
   const parts=String(key||"").split("-");
-  return parts.length===3?parts[2]+"/"+parts[1]+"/"+parts[0]:key;
+  if(parts.length!==3)return key;
+  return parts[2]+"/"+parts[1]+"/"+parts[0];
 }
-function renderDoneGroup(docs,key,offset){
+function renderDoneGroup(docs,key){
   const items=docs.filter(e=>e.dia===key);
   if(!items.length)return "";
   const charged=items.filter(e=>e.cobrancaFeita).length;
-  return '<section class="history-day"><div class="history-day-head"><div><small>'+historyDateLabel(key,offset)+'</small><h3>'+items.length+' entrega'+(items.length===1?"":"s")+'</h3></div><span>'+charged+' cobrança'+(charged===1?"":"s")+' feita'+(charged===1?"":"s")+'</span></div><div class="delivery-list">'+items.map(e=>{
+  return '<section class="history-day"><div class="history-day-head"><div><small>'+historyDateLabel(key)+'</small><h3>'+items.length+' entrega'+(items.length===1?"":"s")+'</h3></div><span>'+charged+' cobrança'+(charged===1?"":"s")+' feita'+(charged===1?"":"s")+'</span></div><div class="delivery-list">'+items.map(e=>{
     const payment=e.resultadoPagamento==="PAGO"?"PAGO":(e.cobrancaFeita?"COBRADO":"PENDENTE");
     const meta=[e.dia||"—",payment,e.formaPagamento||""].filter(Boolean).join(" • ");
     return '<div class="delivery-row"><div><strong>'+esc(formatEndereco(e))+'</strong><small>'+esc(meta)+'</small></div><div class="row-end"><b>'+(e.valorCompraCentavos==null?"—":money(e.valorCompraCentavos))+'</b>'+deliveryActions(e)+'</div></div>';
@@ -368,11 +360,13 @@ function renderDoneGroup(docs,key,offset){
 }
 function showDone(){
   setActive("done");setTitle("Realizadas");
-  const days=[0,1,2].map(offset=>({offset,key:dateKeyOffset(offset)}));
-  const recentDone=currentDocs.filter(e=>!!e.realizada&&days.some(d=>d.key===e.dia));
+  const workedDates=[...new Set(currentDocs.filter(e=>!!e.realizada&&e.dia).map(e=>e.dia))]
+    .sort((a,b)=>String(b).localeCompare(String(a)))
+    .slice(0,3);
+  const recentDone=currentDocs.filter(e=>!!e.realizada&&workedDates.includes(e.dia));
   const charged=recentDone.filter(e=>e.cobrancaFeita).length;
-  const groups=days.map(d=>renderDoneGroup(recentDone,d.key,d.offset)).join("");
-  document.querySelector("#content").innerHTML='<div class="page-head"><div><small>HISTÓRICO DOS ÚLTIMOS 3 DIAS</small><h2>Entregas realizadas</h2><p>Entregas concluídas separadas por dia. Cobranças já feitas ficam registradas aqui.</p></div></div><div class="stats history-stats"><article><small>ENTREGAS</small><strong>'+recentDone.length+'</strong><span>Últimos 3 dias</span></article><article><small>COBRANÇAS FEITAS</small><strong>'+charged+'</strong><span>Registradas</span></article></div><article class="panel"><div class="history-groups">'+(groups||renderEmpty("Nenhuma entrega realizada nos últimos 3 dias."))+'</div></article>';
+  const groups=workedDates.map(key=>renderDoneGroup(recentDone,key)).join("");
+  document.querySelector("#content").innerHTML='<div class="page-head"><div><small>ÚLTIMAS 3 DATAS DE TRABALHO</small><h2>Entregas realizadas</h2><p>As três datas mais recentes em que houve entregas, mesmo que você não tenha trabalhado em dias consecutivos. As cobranças feitas permanecem registradas junto à data.</p></div></div><div class="stats history-stats"><article><small>ENTREGAS</small><strong>'+recentDone.length+'</strong><span>Nas últimas 3 datas de trabalho</span></article><article><small>COBRANÇAS FEITAS</small><strong>'+charged+'</strong><span>Registradas</span></article></div><article class="panel"><div class="history-groups">'+(groups||renderEmpty("Nenhuma entrega realizada registrada."))+'</div></article>';
 }
 
 async function showFinance(){

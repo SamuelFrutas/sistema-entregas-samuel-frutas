@@ -14,7 +14,10 @@ const GOOGLE_CONTACTS_SCOPE = "https://www.googleapis.com/auth/contacts.readonly
 function normalizeAddressKey(value){return String(value||"").toUpperCase().replace(/\s+/g,"").replace(/-/g,"/");}
 function deliveryAddressKey(e){
   if(!e || e.semEndereco || !e.predio || !e.apartamento) return "";
-  return normalizeAddressKey(e.predio)+"/"+normalizeAddressKey(e.bloco||"")+"/"+normalizeAddressKey(e.apartamento);
+  const predio=normalizeAddressKey(e.predio);
+  const bloco=normalizeAddressKey(e.bloco||"");
+  const apartamento=normalizeAddressKey(e.apartamento);
+  return bloco ? predio+"/"+bloco+"/"+apartamento : predio+"/"+apartamento;
 }
 function contactPhone(person){return (person.phoneNumbers||[]).map(p=>p.value||"").find(Boolean)||"";}
 function normalizeWhatsapp(phone){
@@ -244,12 +247,28 @@ function startListener(){
     const status=document.querySelector(".status");
     if(status)status.innerHTML='● Firebase<br><small>Sincronizado em tempo real</small>';
     renderCurrentPage();
+    backfillDeliveryPayout();
   },e=>{
     const status=document.querySelector(".status");
     if(status)status.innerHTML='● Firebase<br><small>Erro: '+(e.code||"leitura")+'</small>';
     currentDocs=[];
     renderCurrentPage();
   });
+}
+async function backfillDeliveryPayout(){
+  try{
+    const config=await getConfig();
+    const cents=Number(config.valorEntregaCentavos||0);
+    if(cents<=0)return;
+    const missing=currentDocs.filter(e=>e.valorEntregaCentavos==null);
+    for(let i=0;i<missing.length;i+=450){
+      const batch=db.batch();
+      missing.slice(i,i+450).forEach(e=>{
+        batch.set(db.collection("entregas").doc(String(e.id)),{valorEntregaCentavos:cents},{merge:true});
+      });
+      await batch.commit();
+    }
+  }catch(e){}
 }
 function setActive(page){document.querySelectorAll("[data-page]").forEach(b=>b.classList.toggle("active",b.dataset.page===page));}
 function setTitle(title){document.querySelector("#pageTitle").textContent=title;}
@@ -385,7 +404,7 @@ async function getConfig(){
 async function saveConfig(){
   const cents=parseMoney(document.querySelector("#valorEntrega").value),msg=document.querySelector("#saveMsg");
   if(cents===null){msg.textContent="Informe um valor válido.";msg.className="save-msg error";return;}
-  try{const mensagemCobranca=(document.querySelector("#mensagemCobranca").value||"").trim();if(!mensagemCobranca){msg.textContent="Informe a mensagem de cobrança.";msg.className="save-msg error";return;}await db.collection("configuracoes").doc("entregador").set({valorEntregaCentavos:cents,mensagemCobranca,atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});document.querySelector("#currentValue").textContent=money(cents);msg.textContent="Configuração salva no Firebase.";msg.className="save-msg ok";}
+  try{const mensagemCobranca=(document.querySelector("#mensagemCobranca").value||"").trim();if(!mensagemCobranca){msg.textContent="Informe a mensagem de cobrança.";msg.className="save-msg error";return;}await db.collection("configuracoes").doc("entregador").set({valorEntregaCentavos:cents,mensagemCobranca,atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});await backfillDeliveryPayout();document.querySelector("#currentValue").textContent=money(cents);msg.textContent="Configuração salva no Firebase.";msg.className="save-msg ok";}
   catch(e){msg.textContent="Não foi possível salvar no Firebase.";msg.className="save-msg error";}
 }
 async function showSettings(){

@@ -524,10 +524,23 @@ function showDone(){
 
 async function showFinance(){
   setActive("finance");setTitle("Financeiro");
-  const done=currentDocs.filter(e=>!!e.realizada),todayDone=done.filter(e=>e.dia===todayKey()),tips=todayDone.reduce((s,e)=>s+Number(e.caixinhaCentavos||0),0),purchase=todayDone.reduce((s,e)=>s+Number(e.valorCompraCentavos||0),0),c=await getConfig(),payout=Number(c.valorEntregaCentavos||0)*todayDone.length;
-  document.querySelector("#content").innerHTML='<div class="page-head"><div><small>FINANCEIRO</small><h2>Resumo financeiro</h2><p>Separação entre o valor das compras dos clientes e o pagamento do entregador.</p></div></div><div class="stats"><article><small>COMPRAS HOJE</small><strong>'+money(purchase)+'</strong><span>Valor informado nas entregas</span></article><article><small>ENTREGAS REALIZADAS</small><strong>'+todayDone.length+'</strong><span>Hoje</span></article><article><small>A PAGAR AO ENTREGADOR</small><strong>'+money(payout)+'</strong><span>'+money(c.valorEntregaCentavos)+' por entrega</span></article><article><small>CAIXINHA</small><strong>'+money(tips)+'</strong><span>Hoje</span></article></div><div class="columns"><article class="panel"><small>PAGAMENTO DO ENTREGADOR</small><h3>Valor configurado</h3><div class="rows"><div>Valor por entrega <b>'+money(c.valorEntregaCentavos)+'</b></div><div>Entregas realizadas hoje <b>'+todayDone.length+'</b></div><div>Total a pagar hoje <b>'+money(payout)+'</b></div></div></article><article class="panel"><small>CLIENTES</small><h3>Valor das compras</h3><div class="rows"><div>Compras registradas hoje <b>'+money(purchase)+'</b></div><div>Caixinha registrada hoje <b>'+money(tips)+'</b></div></div></article></div>';
-}
+  const todayDone=currentDocs.filter(e=>e.dia===todayKey()&&!!e.realizada);
+  const totalVendas=todayDone.reduce((sum,e)=>sum+Number(e.valorCompraCentavos||0),0);
+  const pagoCartao=todayDone.filter(e=>e.resultadoPagamento==="PAGO"&&String(e.formaPagamento||"").toUpperCase().includes("CART")).reduce((sum,e)=>sum+Number(e.valorCompraCentavos||0),0);
+  const pagoDinheiro=todayDone.filter(e=>e.resultadoPagamento==="PAGO"&&String(e.formaPagamento||"").toUpperCase().includes("DINHE")).reduce((sum,e)=>sum+Number(e.valorCompraCentavos||0),0);
+  const cobrancas=todayDone.filter(e=>e.resultadoPagamento!=="PAGO"&&(
+    e.pagamentoInicial==="NAO_PAGO" || e.resultadoPagamento==="NAO_PAGO"
+  )).reduce((sum,e)=>sum+Number(e.valorCompraCentavos||0),0);
 
+  document.querySelector("#content").innerHTML=
+    '<div class="page-head"><div><small>FINANCEIRO</small><h2>Resumo financeiro</h2><p>Valores das compras das entregas realizadas hoje.</p></div></div>'+
+    '<div class="stats finance-stats">'+
+      '<article><small>VALOR TOTAL DAS ENTREGAS</small><strong>'+money(totalVendas)+'</strong><span>Vendas realizadas hoje</span></article>'+
+      '<article><small>PAGO COM CARTÃO</small><strong>'+money(pagoCartao)+'</strong><span>Compras pagas com cartão</span></article>'+
+      '<article><small>PAGO COM DINHEIRO</small><strong>'+money(pagoDinheiro)+'</strong><span>Compras pagas em dinheiro</span></article>'+
+      '<article><small>COBRANÇAS</small><strong>'+money(cobrancas)+'</strong><span>Compras ainda não pagas</span></article>'+
+    '</div>';
+}
 function loadConfig(){return {valorEntregaCentavos:0};}
 async function getConfig(){
   try{const snap=await db.collection("configuracoes").doc("entregador").get();return snap.exists?Object.assign({valorEntregaCentavos:0,mensagemCobranca:"Total do investimento na sua saúde : {{valor}}"},snap.data()):Object.assign(loadConfig(),{mensagemCobranca:"Total do investimento na sua saúde : {{valor}}"});}

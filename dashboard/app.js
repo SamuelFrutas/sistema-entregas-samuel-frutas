@@ -148,7 +148,7 @@ async function startCharge(id){
 }
 
 function chargeAction(e){
-  if(!e.realizada || e.resultadoPagamento==="PAGO" || e.pagamentoInicial!=="NAO_PAGO") return "";
+  if(!e.realizada || e.resultadoPagamento==="PAGO" || (e.pagamentoInicial!=="NAO_PAGO" && e.resultadoPagamento!=="NAO_PAGO")) return "";
   return "<button class=\"row-action charge-btn\" onclick=\"startCharge('"+esc(e.id)+"')\">COBRAR NO WHATSAPP</button>";
 }
 function renderChargeRow(e){
@@ -157,7 +157,7 @@ function renderChargeRow(e){
 }
 function showCharges(){
   setActive("charges");setTitle("Cobranças");
-  const unpaid=currentDocs.filter(e=>!!e.realizada&&e.pagamentoInicial==="NAO_PAGO"&&e.resultadoPagamento!=="PAGO");
+  const unpaid=currentDocs.filter(e=>!!e.realizada&&e.resultadoPagamento!=="PAGO"&&(e.pagamentoInicial==="NAO_PAGO"||e.resultadoPagamento==="NAO_PAGO"));
   document.querySelector("#content").innerHTML='<div class="page-head page-head-actions"><div><small>CLIENTES COM PAGAMENTO PENDENTE</small><h2>Cobrar pelo WhatsApp</h2><p>O sistema procura o endereço no nome do contato do Google e abre a conversa com a mensagem pronta.</p></div><button class="primary add-btn" id="googleContactsButton">'+(googleContactsCache.length?"ATUALIZAR CONTATOS":"CONECTAR GOOGLE CONTATOS")+'</button></div><div class="panel charge-connection"><div><small>GOOGLE CONTACTS</small><h3>'+esc(googleContactsStatusText())+'</h3><p id="googleContactsMsg">A conexão fica salva no servidor; ao recarregar a página o sistema tenta carregar os contatos sem pedir autorização novamente.</p></div></div><article class="panel"><div class="panel-head"><div><small>PAGAMENTOS</small><h3>'+unpaid.length+' pendente'+(unpaid.length===1?"":"s")+'</h3></div></div><div class="delivery-list">'+(unpaid.length?unpaid.map(renderChargeRow).join(""):renderEmpty("Nenhuma cobrança pendente."))+'</div></article>';
   document.getElementById("googleContactsButton").onclick=()=>{
     if(googleContactsCache.length) loadGoogleContactsSilently();

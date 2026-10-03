@@ -941,18 +941,15 @@ private fun myDay() {
         base("Meu Dia", { home() })
         val list = db.listarDia(today)
         val done = list.count { it.realizada }
-        val pendingCount = list.count { !it.realizada }
         val realizadas = list.filter { it.realizada }
         val tips = realizadas.sumOf { it.caixinhaCentavos }
         val ganhoDoDia = valorPorEntrega * done
         val totalGeral = ganhoDoDia + tips
-        val ganhoText = centsText(ganhoDoDia)
 
         add(iconTitle(R.drawable.ic_check_circle, "ENTREGAS REALIZADAS", done.toString()).apply {
             background = rounded(Color.rgb(6, 60, 95), 16f, Color.rgb(35, 76, 102))
         }, 8)
-        add(iconTitle(R.drawable.ic_truck, "VALOR DO ENTREGADOR", ganhoText + "\n" +
-            (if (valorPorEntrega > 0L) centsText(valorPorEntrega) + " × " + done + " entregas" else "Configure no dashboard web")).apply {
+        add(iconTitle(R.drawable.ic_truck, "GANHOS DAS ENTREGAS", centsText(ganhoDoDia)).apply {
             background = rounded(Color.rgb(66, 22, 105), 16f, Color.rgb(35, 76, 102))
         }, 8)
         add(iconTitle(R.drawable.ic_add, "CAIXINHAS RECEBIDAS", centsText(tips)).apply {
@@ -961,10 +958,6 @@ private fun myDay() {
         add(iconTitle(R.drawable.ic_check_circle, "TOTAL GERAL", centsText(totalGeral)).apply {
             background = rounded(Color.rgb(6, 60, 95), 16f, Color.rgb(35, 76, 102))
         }, 8)
-        add(iconTitle(R.drawable.ic_pending, "ENTREGAS PENDENTES", pendingCount.toString()).apply {
-            background = rounded(Color.rgb(5, 72, 48), 16f, Color.rgb(35, 76, 102))
-        }, 8)
-        add(iconBtn(R.drawable.ic_check_circle, "VER ENTREGAS REALIZADAS") { completed() }, 14)
     }
 
         private fun syncScreen() {

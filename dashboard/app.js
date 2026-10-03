@@ -389,18 +389,33 @@ function renderRecentes(docs){
 function renderHomeData(){
   const today=currentDocs.filter(e=>e.dia===todayKey()),pending=today.filter(e=>!e.realizada),done=today.filter(e=>!!e.realizada),tips=done.reduce((s,e)=>s+Number(e.caixinhaCentavos||0),0);
   const set=(sel,val)=>{const el=document.querySelector(sel);if(el)el.textContent=val;};
-  set(".stats article:nth-child(1) strong",today.length);set(".stats article:nth-child(2) strong",pending.length);set(".stats article:nth-child(3) strong",done.length);set(".stats article:nth-child(4) strong",money(tips));
+  set(".stats article:nth-child(1) strong",today.length);
+  set(".stats article:nth-child(2) strong",pending.length);
+  set(".stats article:nth-child(3) strong",done.length);
   set("#todayHint",today.length===1?"1 entrega registrada":today.length+" entregas registradas");
-  renderRecentes(today);
+
   getConfig().then(c=>{
-    const rows=document.querySelector(".rows");
-    if(rows)rows.innerHTML='<div>Valor por entrega <b>'+money(c.valorEntregaCentavos)+'</b></div><div>Entregas realizadas <b>'+done.length+'</b></div><div>Total a pagar <b>'+money(Number(c.valorEntregaCentavos||0)*done.length)+'</b></div>';
+    const ganhoEntregas=Number(c.valorEntregaCentavos||0)*done.length;
+    const totalPagar=ganhoEntregas+tips;
+    const rows=document.querySelector(".home-summary-rows");
+    if(rows)rows.innerHTML=
+      '<div>Entregas realizadas <b>'+done.length+'</b></div>'+
+      '<div>Ganhos entregas <b>'+money(ganhoEntregas)+'</b></div>'+
+      '<div>Caixinhas <b>'+money(tips)+'</b></div>'+
+      '<div>Total a pagar <b>'+money(totalPagar)+'</b></div>';
   });
 }
 
 function showHome(){
   setActive("home");setTitle("Visão geral");
-  document.querySelector("#content").innerHTML='<div class="hero"><div><small>HOJE</small><h2>Controle das entregas</h2><p>Acompanhe em tempo real o que foi registrado pelo entregador no APK.</p></div><strong class="hero-icon">▣</strong></div><div class="stats"><article><small>ENTREGAS HOJE</small><strong>0</strong><span id="todayHint">Nenhuma registrada</span></article><article><small>PENDENTES</small><strong>0</strong><span>Aguardando conclusão</span></article><article><small>REALIZADAS</small><strong>0</strong><span>Concluídas hoje</span></article><article><small>CAIXINHA</small><strong>R$ 0,00</strong><span>Hoje</span></article></div><div class="columns"><article class="panel"><div class="panel-head"><div><small>ACOMPANHAMENTO</small><h3>Entregas recentes</h3></div><span class="live-dot">AO VIVO</span></div><div id="recentes" class="delivery-list"></div></article><article class="panel"><small>ENTREGADOR</small><h3>Resumo do dia</h3><div class="rows"><div>Valor por entrega <b>R$ 0,00</b></div><div>Entregas realizadas <b>0</b></div><div>Total a pagar <b>R$ 0,00</b></div></div></article></div>';
+  document.querySelector("#content").innerHTML=
+    '<div class="hero"><div><small>HOJE</small><h2>Controle das entregas</h2><p>Acompanhe em tempo real o que foi registrado pelo entregador no APK.</p></div><strong class="hero-icon">▣</strong></div>'+
+    '<div class="stats home-stats"><article><small>ENTREGAS HOJE</small><strong>0</strong><span id="todayHint">Nenhuma registrada</span></article>'+
+    '<article><small>PENDENTES</small><strong>0</strong><span>Aguardando conclusão</span></article>'+
+    '<article><small>REALIZADAS</small><strong>0</strong><span>Concluídas hoje</span></article></div>'+
+    '<article class="panel home-summary"><small>ENTREGADOR</small><h3>Resumo do dia</h3><div class="rows home-summary-rows">'+
+    '<div>Entregas realizadas <b>0</b></div><div>Ganhos entregas <b>R$ 0,00</b></div><div>Caixinhas <b>R$ 0,00</b></div><div>Total a pagar <b>R$ 0,00</b></div>'+
+    '</div></article>';
   renderHomeData();
 }
 

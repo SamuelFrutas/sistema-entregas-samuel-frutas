@@ -445,6 +445,16 @@ function openDelivery(id){
     catch(err){const msg=document.getElementById("editMsg");msg.textContent="Não foi possível excluir.";msg.className="save-msg error";}
   };
 }
+async function nextDashboardDeliveryId(){
+  const ref=db.collection("configuracoes").doc("entregador");
+  return db.runTransaction(async transaction=>{
+    const snap=await transaction.get(ref);
+    const current=Number(snap.exists?snap.data().proximoIdDashboard:null);
+    const next=Number.isInteger(current)&&current<0 ? current-1 : -1;
+    transaction.set(ref,{proximoIdDashboard:next},{merge:true});
+    return next;
+  });
+}
 function openNewDelivery(){
   const overlay=document.createElement("div"); overlay.className="modal-overlay"; overlay.id="deliveryModal";
   overlay.innerHTML='<div class="modal-card"><div class="modal-head"><div><small>NOVA ENTREGA</small><h2>Registrar entrega</h2></div><button class="modal-close" id="closeDelivery">×</button></div>'+
@@ -460,8 +470,12 @@ function openNewDelivery(){
     const valor=parseMoney(document.getElementById("newValor").value);
     const msg=document.getElementById("newMsg");
     const data={dia:todayKey(),predio:document.getElementById("newPredio").value.trim(),bloco:document.getElementById("newBloco").value.trim(),apartamento:document.getElementById("newApto").value.trim(),semEndereco:document.getElementById("newSemEndereco").checked,enderecoReferencia:document.getElementById("newReferencia").value.trim(),valorCompraCentavos:valor,pagamentoInicial:document.getElementById("newPagamento").value,resultadoPagamento:"",formaPagamento:"",caixinhaCentavos:0,observacao:"",realizada:false,cobrancaFeita:false,sincronizacao:"SINCRONIZADA"};
-    try{const snap=await db.collection("entregas").get();const ids=snap.docs.map(d=>Number(d.id)).filter(n=>Number.isInteger(n)&&n>0&&n<1000000);const id=String((ids.length?Math.max(...ids):0)+1);await db.collection("entregas").doc(id).set({...data,id:Number(id),atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()});overlay.remove();}
-    catch(err){msg.textContent="Não foi possível adicionar.";msg.className="save-msg error";}
+    try{
+      const idNumber=await nextDashboardDeliveryId();
+      const id=String(idNumber);
+      await db.collection("entregas").doc(id).set({...data,id:idNumber,atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()});
+      overlay.remove();
+    }catch(err){msg.textContent="Não foi possível adicionar.";msg.className="save-msg error";}
   };
 }
 function deliveryActions(e){return '<button class="row-action" onclick="openDelivery(\''+esc(e.id)+'\')">EDITAR</button>';}

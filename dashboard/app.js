@@ -39,40 +39,18 @@ async function openWhatsappCharge(e,person){
   const message=template.replace(/\{\{\s*valor\s*\}\}/gi,money(e.valorCompraCentavos));
   window.open("https://wa.me/"+phone+"?text="+encodeURIComponent(message),"_blank","noopener,noreferrer");
 }
-async function vincularContatoCobranca(e,person){
-  const resourceName=String(person.resourceName||"");
-  const telefone=contactPhone(person);
-  const nome=googleContactName(person);
-  if(!resourceName && !telefone){alert("Este contato não possui identificação ou telefone.");return false;}
-  try{
-    await db.collection("entregas").doc(String(e.id)).set({
-      cobrancaContatoResourceName:resourceName,
-      cobrancaContatoNome:nome,
-      cobrancaContatoTelefone:telefone
-    },{merge:true});
-    e.cobrancaContatoResourceName=resourceName;
-    e.cobrancaContatoNome=nome;
-    e.cobrancaContatoTelefone=telefone;
-    return true;
-  }catch(err){
-    alert("Não foi possível vincular este cliente à cobrança.");
-    return false;
-  }
-}
-function contactMatchesSaved(person,e){
-  if(!e)return false;
-  const saved=String(e.cobrancaContatoResourceName||"");
-  const phone=String(e.cobrancaContatoTelefone||"");
-  return (saved && String(person.resourceName||"")===saved) ||
-    (phone && normalizeWhatsapp(contactPhone(person))===normalizeWhatsapp(phone));
-}
 function contactSearchText(person){
   return (googleContactName(person)+" "+contactPhone(person)).toLocaleLowerCase("pt-BR");
 }
-function openChargeContactPicker(e){
+function contactNameMatches(person,term){
+  const q=String(term||"").trim().toLocaleLowerCase("pt-BR");
+  if(!q)return false;
+  return googleContactName(person).toLocaleLowerCase("pt-BR").includes(q);
+}
+function openChargeContactPicker(e,initialTerm=""){
   const overlay=document.createElement("div");
   overlay.className="modal-overlay";
-  overlay.innerHTML='<div class="modal-card charge-modal"><div class="modal-head"><div><small>COBRANÇA</small><h2>Selecionar cliente</h2><p>Esta entrega não tem o cliente identificado pelo endereço. Pesquise o nome e escolha o contato.</p></div><button class="modal-close" id="closeChargeContact">×</button></div><input id="chargeContactSearch" class="charge-contact-search" placeholder="Pesquisar nome ou telefone"><div class="contact-options" id="chargeContactOptions"></div></div>';
+  overlay.innerHTML='<div class="modal-card charge-modal"><div class="modal-head"><div><small>COBRANÇA</small><h2>Selecionar cliente</h2><p>Escolha o contato desta entrega. Essa escolha será usada somente nesta cobrança.</p></div><button class="modal-close" id="closeChargeContact">×</button></div><input id="chargeContactSearch" class="charge-contact-search" placeholder="Pesquisar nome ou telefone" value="'+esc(initialTerm)+'"><div class="contact-options" id="chargeContactOptions"></div></div>';
   document.body.appendChild(overlay);
   const search=overlay.querySelector("#chargeContactSearch");
   const options=overlay.querySelector("#chargeContactOptions");
@@ -80,16 +58,16 @@ function openChargeContactPicker(e){
     const q=String(search.value||"").trim().toLocaleLowerCase("pt-BR");
     const list=googleContactsCache.filter(p=>contactPhone(p)&&(!q||contactSearchText(p).includes(q))).slice(0,80);
     options.innerHTML=list.length?list.map((p,i)=>'<button class="contact-option" data-contact="'+i+'"><strong>'+esc(googleContactName(p))+'</strong><span>'+esc(contactPhone(p))+'</span></button>').join(""):'<p style="padding:16px;color:#9aa6b2">Nenhum contato encontrado.</p>';
-    options.querySelectorAll(".contact-option").forEach(btn=>btn.onclick=async()=>{
+    options.querySelectorAll(".contact-option").forEach(btn=>btn.onclick=()=>{
       const person=list[Number(btn.dataset.contact)];
-      const ok=await vincularContatoCobranca(e,person);
-      if(ok){overlay.remove();openWhatsappCharge(e,person);}
+      overlay.remove();
+      openWhatsappCharge(e,person);
     });
   };
   search.addEventListener("input",render);
   overlay.querySelector("#closeChargeContact").onclick=()=>overlay.remove();
   render();
-  setTimeout(()=>search.focus(),50);
+  setTimeout(()=>{search.focus();search.select();},50);
 }
 function googleContactsStatusText(){
   return googleContactsCache.length ? googleContactsCache.length+" contatos no banco" : "Contatos ainda não sincronizados";
@@ -213,29 +191,29 @@ async function startCharge(id){
   const e=currentDocs.find(x=>x.id===id);if(!e)return;
   if(!googleContactsDbLoaded)await loadGoogleContactsFromDb();
 
-  const saved=googleContactsCache.find(p=>contactMatchesSaved(p,e));
-  if(saved){openWhatsappCharge(e,saved);return;}
-
   const matches=findContactsForDelivery(e);
-  if(matches.length===1){
-    const ok=await vincularContatoCobranca(e,matches[0]);
-    if(ok)openWhatsappCharge(e,matches[0]);
-    return;
-  }
+  if(matches.length===1){openWhatsappCharge(e,matches[0]);return;}
   if(matches.length>1){
     const overlay=document.createElement("div");overlay.className="modal-overlay";
     overlay.innerHTML='<div class="modal-card charge-modal"><div class="modal-head"><div><small>COBRANÇA</small><h2>Escolha o cliente</h2><p>Encontramos '+matches.length+' contatos para <b>'+esc(deliveryAddressKey(e))+'</b>.</p></div><button class="modal-close" id="closeCharge">×</button></div><div class="contact-options">'+matches.map((p,i)=>'<button class="contact-option" data-contact="'+i+'"><strong>'+esc(googleContactName(p))+'</strong><span>'+esc(contactPhone(p))+'</span></button>').join("")+'</div></div>';
     document.body.appendChild(overlay);
     document.getElementById("closeCharge").onclick=()=>overlay.remove();
-    overlay.querySelectorAll(".contact-option").forEach(btn=>btn.onclick=async()=>{
+    overlay.querySelectorAll(".contact-option").forEach(btn=>btn.onclick=()=>{
       const person=matches[Number(btn.dataset.contact)];
-      const ok=await vincularContatoCobranca(e,person);
-      if(ok){openWhatsappCharge(e,person);overlay.remove();}
+      overlay.remove();
+      openWhatsappCharge(e,person);
     });
     return;
   }
 
-  openChargeContactPicker(e);
+  const nomeInformado=e.semEndereco?String(e.enderecoReferencia||"").trim():"";
+  if(nomeInformado){
+    const porNome=googleContactsCache.filter(p=>contactPhone(p)&&contactNameMatches(p,nomeInformado));
+    if(porNome.length===1){openWhatsappCharge(e,porNome[0]);return;}
+    if(porNome.length>1){openChargeContactPicker(e,nomeInformado);return;}
+  }
+
+  openChargeContactPicker(e,"");
 }
 async function markCharged(id){
   const e=currentDocs.find(x=>x.id===id);if(!e)return;
@@ -260,7 +238,7 @@ function renderChargeRow(e){
 function showCharges(){
   setActive("charges");setTitle("Cobranças");
   const unpaid=currentDocs.filter(e=>!!e.realizada&&!e.cobrancaFeita&&e.resultadoPagamento!=="PAGO"&&(e.pagamentoInicial==="NAO_PAGO"||e.resultadoPagamento==="NAO_PAGO"));
-  document.querySelector("#content").innerHTML='<div class="page-head page-head-actions"><div><small>CLIENTES COM PAGAMENTO PENDENTE</small><h2>Cobrar pelo WhatsApp</h2><p>O sistema tenta localizar pelo endereço. Se o contato não tiver o endereço salvo, você pode pesquisar pelo nome e vincular o cliente à entrega.</p></div><button class="primary add-btn" id="googleContactsButton">'+(googleContactsCache.length?"ATUALIZAR CONTATOS":"CONECTAR GOOGLE CONTATOS")+'</button></div><div class="panel charge-connection"><div><small>GOOGLE CONTACTS</small><h3>'+esc(googleContactsStatusText())+'</h3><p id="googleContactsMsg">Os contatos ficam armazenados no banco. Quando cadastrar novos clientes no Google, clique em “ATUALIZAR CONTATOS”.</p></div></div><article class="panel"><div class="panel-head"><div><small>PAGAMENTOS</small><h3>'+unpaid.length+' pendente'+(unpaid.length===1?"":"s")+'</h3></div></div><div class="delivery-list">'+(unpaid.length?unpaid.map(renderChargeRow).join(""):renderEmpty("Nenhuma cobrança pendente."))+'</div></article>';
+  document.querySelector("#content").innerHTML='<div class="page-head page-head-actions"><div><small>CLIENTES COM PAGAMENTO PENDENTE</small><h2>Cobrar pelo WhatsApp</h2><p>O sistema tenta localizar pelo endereço. Se a entrega foi cadastrada sem endereço, ele tenta encontrar automaticamente o nome informado nos contatos e, se necessário, abre a busca.</p></div><button class="primary add-btn" id="googleContactsButton">'+(googleContactsCache.length?"ATUALIZAR CONTATOS":"CONECTAR GOOGLE CONTATOS")+'</button></div><div class="panel charge-connection"><div><small>GOOGLE CONTACTS</small><h3>'+esc(googleContactsStatusText())+'</h3><p id="googleContactsMsg">Os contatos ficam armazenados no banco. Quando cadastrar novos clientes no Google, clique em “ATUALIZAR CONTATOS”.</p></div></div><article class="panel"><div class="panel-head"><div><small>PAGAMENTOS</small><h3>'+unpaid.length+' pendente'+(unpaid.length===1?"":"s")+'</h3></div></div><div class="delivery-list">'+(unpaid.length?unpaid.map(renderChargeRow).join(""):renderEmpty("Nenhuma cobrança pendente."))+'</div></article>';
   document.getElementById("googleContactsButton").onclick=updateGoogleContacts;
   if(!googleContactsDbLoaded){
     loadGoogleContactsFromDb().then(()=>showCharges());

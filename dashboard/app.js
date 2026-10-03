@@ -505,9 +505,16 @@ function showDone(){
     .sort((a,b)=>String(b).localeCompare(String(a)))
     .slice(0,3);
   const recentDone=currentDocs.filter(e=>!!e.realizada&&workedDates.includes(e.dia));
-  const charged=recentDone.filter(e=>e.cobrancaFeita).length;
   const groups=workedDates.map(key=>renderDoneGroup(recentDone,key)).join("");
-  document.querySelector("#content").innerHTML='<div class="page-head"><div><small>ÚLTIMAS 3 DATAS DE TRABALHO</small><h2>Entregas realizadas</h2><p>As três datas mais recentes em que houve entregas, mesmo que você não tenha trabalhado em dias consecutivos. As cobranças feitas permanecem registradas junto à data.</p></div></div><div class="stats history-stats"><article><small>ENTREGAS</small><strong>'+recentDone.length+'</strong><span>Nas últimas 3 datas de trabalho</span></article><article><small>COBRANÇAS FEITAS</small><strong>'+charged+'</strong><span>Registradas</span></article></div><article class="panel"><div class="history-groups">'+(groups||renderEmpty("Nenhuma entrega realizada registrada."))+'</div></article>';
+  document.querySelector("#content").innerHTML='<div class="page-head"><div><small>ÚLTIMAS 3 DATAS DE TRABALHO</small><h2>Entregas realizadas</h2><p>As três datas mais recentes em que houve entregas, mesmo que você não tenha trabalhado em dias consecutivos. As cobranças feitas permanecem registradas junto à data.</p></div></div><article class="panel"><div class="history-groups">'+(groups||renderEmpty("Nenhuma entrega realizada registrada."))+'</div></article>';
+  document.querySelectorAll(".history-day-head > span").forEach(el=>{
+    const group=el.closest(".history-day");
+    const key=group?.querySelector(".history-day-head small")?.textContent;
+    const source=key?recentDone.filter(e=>historyDateLabel(e.dia)===key):[];
+    const pending=source.filter(e=>!e.cobrancaFeita).length;
+    el.textContent=pending+" cobranças pendentes";
+    el.style.color=pending===0?"var(--green)":"var(--danger)";
+  });
 }
 
 async function showFinance(){

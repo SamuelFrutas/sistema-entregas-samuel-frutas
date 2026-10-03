@@ -43,9 +43,9 @@ function contactSearchText(person){
   return (googleContactName(person)+" "+contactPhone(person)).toLocaleLowerCase("pt-BR");
 }
 function contactNameMatches(person,term){
-  const q=String(term||"").trim().toLocaleLowerCase("pt-BR");
-  if(!q)return false;
-  return googleContactName(person).toLocaleLowerCase("pt-BR").includes(q);
+  const norm=v=>String(v||"").trim().toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/\\s+/g," ");
+  const q=norm(term);
+  return !!q && norm(googleContactName(person))===q;
 }
 function openChargeContactPicker(e,initialTerm=""){
   const overlay=document.createElement("div");

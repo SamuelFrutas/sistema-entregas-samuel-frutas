@@ -72,7 +72,7 @@ function contactSearchText(person){
 function openChargeContactPicker(e){
   const overlay=document.createElement("div");
   overlay.className="modal-overlay";
-  overlay.innerHTML='<div class="modal-card charge-modal"><div class="modal-head"><div><small>COBRANÇA</small><h2>Selecionar cliente</h2><p>Esta entrega não tem o cliente identificado pelo endereço. Pesquise o nome e escolha o contato.</p></div><button class="modal-close" id="closeChargeContact">×</button></div><input id="chargeContactSearch" class="text-input" placeholder="Pesquisar nome ou telefone"><div class="contact-options" id="chargeContactOptions"></div></div>';
+  overlay.innerHTML='<div class="modal-card charge-modal"><div class="modal-head"><div><small>COBRANÇA</small><h2>Selecionar cliente</h2><p>Esta entrega não tem o cliente identificado pelo endereço. Pesquise o nome e escolha o contato.</p></div><button class="modal-close" id="closeChargeContact">×</button></div><input id="chargeContactSearch" class="charge-contact-search" placeholder="Pesquisar nome ou telefone"><div class="contact-options" id="chargeContactOptions"></div></div>';
   document.body.appendChild(overlay);
   const search=overlay.querySelector("#chargeContactSearch");
   const options=overlay.querySelector("#chargeContactOptions");

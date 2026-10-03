@@ -112,15 +112,20 @@ class FirebaseSync(
         realtimeListener = null
     }
 
-    fun getValorPorEntrega(onDone: (Long?) -> Unit) {
+    fun getValorPorEntrega(dia: String, onDone: (Long?) -> Unit) {
         ensureAuth { ok, _ ->
             if (!ok) {
                 onDone(null)
                 return@ensureAuth
             }
-            firestore.collection("configuracoes").document("entregador").get()
+            firestore.collection("entregas")
+                .whereEqualTo("dia", dia)
+                .limit(50)
+                .get()
                 .addOnSuccessListener { snap ->
-                    onDone(snap.getLong("valorEntregaCentavos"))
+                    val valor = snap.documents
+                        .firstNotNullOfOrNull { it.getLong("valorEntregaCentavos") }
+                    onDone(valor)
                 }
                 .addOnFailureListener {
                     onDone(null)
@@ -152,7 +157,7 @@ class FirebaseSync(
                 "sincronizacao" to "SINCRONIZADA", "atualizadoEm" to FieldValue.serverTimestamp()
             )
             status = "SINCRONIZANDO..." + if (attempt > 0) " TENTATIVA ${attempt + 1}/3" else ""
-            firestore.collection("entregas").document(e.id.toString()).set(data)
+            firestore.collection("entregas").document(e.id.toString()).set(data, com.google.firebase.firestore.SetOptions.merge())
                 .addOnSuccessListener {
                     dbLocal.marcarSincronizada(e.id); status = "SINCRONIZADO"; onDone?.invoke(true)
                 }

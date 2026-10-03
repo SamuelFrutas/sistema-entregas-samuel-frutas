@@ -209,8 +209,7 @@ async function startCharge(id){
   const nomeInformado=e.semEndereco?String(e.enderecoReferencia||"").trim():"";
   if(nomeInformado){
     const porNome=googleContactsCache.filter(p=>contactPhone(p)&&contactNameMatches(p,nomeInformado));
-    if(porNome.length===1){openWhatsappCharge(e,porNome[0]);return;}
-    if(porNome.length>1){openChargeContactPicker(e,nomeInformado);return;}
+    if(porNome.length>=1){openChargeContactPicker(e,nomeInformado);return;}
   }
 
   openChargeContactPicker(e,"");

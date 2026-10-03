@@ -45,7 +45,9 @@ function contactSearchText(person){
 function contactNameMatches(person,term){
   const norm=v=>String(v||"").trim().toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/\\s+/g," ");
   const q=norm(term);
-  return !!q && norm(googleContactName(person))===q;
+  const name=norm(googleContactName(person));
+  if(!q)return false;
+  return name===q || name.startsWith(q+" ") || name.includes(" "+q) || name.includes(q);
 }
 function openChargeContactPicker(e,initialTerm=""){
   const overlay=document.createElement("div");
@@ -206,8 +208,8 @@ async function startCharge(id){
     return;
   }
 
-  const nomeInformado=e.semEndereco?String(e.enderecoReferencia||"").trim():"";
-  if(nomeInformado){
+  const nomeInformado=String(e.enderecoReferencia||"").trim();
+  if(e.semEndereco && nomeInformado){
     const porNome=googleContactsCache.filter(p=>contactPhone(p)&&contactNameMatches(p,nomeInformado));
     if(porNome.length>=1){openChargeContactPicker(e,nomeInformado);return;}
   }

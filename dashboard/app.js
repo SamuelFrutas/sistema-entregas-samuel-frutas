@@ -45,7 +45,15 @@ async function openWhatsappCharge(e,person){
   window.open("https://wa.me/"+phone+"?text="+encodeURIComponent(message),"_blank","noopener,noreferrer");
 }
 function contactSearchText(person){
-  return (googleContactName(person)+" "+contactPhone(person)).toLocaleLowerCase("pt-BR");
+  const names=(person.names||[]).map(n=>n?.displayName||n?.value||"").join(" ");
+  return [
+    names,
+    person.nome||"",
+    person.name||"",
+    contactPhone(person),
+    person.telefone||"",
+    person.phone||""
+  ].join(" ");
 }
 function contactNameMatches(person,term){
   const norm=v=>String(v||"").trim().toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").replace(/\\s+/g," ");
@@ -67,9 +75,8 @@ function openChargeContactPicker(e,initialTerm=""){
     // A busca manual sempre consulta TODOS os contatos. O resultado inicial por nome
     // não pode limitar a busca, porque o nome digitado pelo entregador pode estar errado.
     const list=googleContactsCache.filter(p=>{
-      if(!contactPhone(p))return false;
       if(!q)return true;
-      return normalizeSearch(googleContactName(p)+" "+contactPhone(p)).includes(q);
+      return normalizeSearch(contactSearchText(p)).includes(q);
     }).slice(0,80);
     options.innerHTML=list.length?list.map((p,i)=>'<button class="contact-option" data-contact="'+i+'"><strong>'+esc(googleContactName(p))+'</strong><span>'+esc(contactPhone(p))+'</span></button>').join(""):'<p style="padding:16px;color:#9aa6b2">Nenhum contato encontrado.</p>';
     options.querySelectorAll(".contact-option").forEach(btn=>btn.onclick=()=>{

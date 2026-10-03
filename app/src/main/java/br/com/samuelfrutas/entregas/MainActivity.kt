@@ -116,7 +116,7 @@ class MainActivity : Activity() {
         scaleType = ImageView.ScaleType.CENTER_INSIDE
     }
 
-    private fun iconTitle(resId: Int, title: String, subtitle: String = ""): LinearLayout =
+    private fun iconTitle(resId: Int, title: String, subtitle: String = "", subtitleSize: Float = 11f): LinearLayout =
         LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -127,7 +127,7 @@ class MainActivity : Activity() {
                 layoutParams = LinearLayout.LayoutParams(0, -2, 1f)
                 setPadding(dp(10), 0, 0, 0)
                 addView(txt(title, 15f, Color.WHITE, true))
-                if (subtitle.isNotBlank()) addView(txt(subtitle, 11f, muted))
+                if (subtitle.isNotBlank()) addView(txt(subtitle, subtitleSize, muted))
             }
             addView(texts)
         }
@@ -946,16 +946,16 @@ private fun myDay() {
         val ganhoDoDia = valorPorEntrega * done
         val totalGeral = ganhoDoDia + tips
 
-        add(iconTitle(R.drawable.ic_check_circle, "ENTREGAS REALIZADAS", done.toString()).apply {
+        add(iconTitle(R.drawable.ic_check_circle, "ENTREGAS REALIZADAS", done.toString(), 14f).apply {
             background = rounded(Color.rgb(6, 60, 95), 16f, Color.rgb(35, 76, 102))
         }, 8)
-        add(iconTitle(R.drawable.ic_truck, "GANHOS DAS ENTREGAS", centsText(ganhoDoDia)).apply {
+        add(iconTitle(R.drawable.ic_truck, "GANHOS DAS ENTREGAS", centsText(ganhoDoDia), 14f).apply {
             background = rounded(Color.rgb(66, 22, 105), 16f, Color.rgb(35, 76, 102))
         }, 8)
-        add(iconTitle(R.drawable.ic_add, "CAIXINHAS RECEBIDAS", centsText(tips)).apply {
+        add(iconTitle(R.drawable.ic_add, "CAIXINHAS RECEBIDAS", centsText(tips), 14f).apply {
             background = rounded(Color.rgb(73, 57, 3), 16f, Color.rgb(35, 76, 102))
         }, 8)
-        add(iconTitle(R.drawable.ic_check_circle, "TOTAL GERAL", centsText(totalGeral)).apply {
+        add(iconTitle(R.drawable.ic_check_circle, "TOTAL GERAL", centsText(totalGeral), 14f).apply {
             background = rounded(Color.rgb(6, 60, 95), 16f, Color.rgb(35, 76, 102))
         }, 8)
     }

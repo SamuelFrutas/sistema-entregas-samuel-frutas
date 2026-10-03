@@ -54,7 +54,7 @@ function contactNameMatches(person,term){
   if(!q)return false;
   return name===q || name.startsWith(q+" ") || name.includes(" "+q) || name.includes(q);
 }
-function openChargeContactPicker(e,initialTerm="",presetContacts=null){
+function openChargeContactPicker(e,initialTerm=""){
   const overlay=document.createElement("div");
   overlay.className="modal-overlay";
   overlay.innerHTML='<div class="modal-card charge-modal"><div class="modal-head"><div><small>COBRANÇA</small><h2>Selecionar cliente</h2><p>Escolha o contato desta entrega. Essa escolha será usada somente nesta cobrança.</p></div><button class="modal-close" id="closeChargeContact">×</button></div><input id="chargeContactSearch" class="charge-contact-search" placeholder="Pesquisar nome ou telefone" value="'+esc(initialTerm)+'"><div class="contact-options" id="chargeContactOptions"></div></div>';
@@ -62,9 +62,15 @@ function openChargeContactPicker(e,initialTerm="",presetContacts=null){
   const search=overlay.querySelector("#chargeContactSearch");
   const options=overlay.querySelector("#chargeContactOptions");
   const render=()=>{
-    const q=String(search.value||"").trim().toLocaleLowerCase("pt-BR");
-    const source=presetContacts||googleContactsCache;
-    const list=source.filter(p=>contactPhone(p)&&(!q||contactSearchText(p).includes(q))).slice(0,80);
+    const normalizeSearch=v=>String(v||"").trim().toLocaleLowerCase("pt-BR").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"");
+    const q=normalizeSearch(search.value);
+    // A busca manual sempre consulta TODOS os contatos. O resultado inicial por nome
+    // não pode limitar a busca, porque o nome digitado pelo entregador pode estar errado.
+    const list=googleContactsCache.filter(p=>{
+      if(!contactPhone(p))return false;
+      if(!q)return true;
+      return normalizeSearch(googleContactName(p)+" "+contactPhone(p)).includes(q);
+    }).slice(0,80);
     options.innerHTML=list.length?list.map((p,i)=>'<button class="contact-option" data-contact="'+i+'"><strong>'+esc(googleContactName(p))+'</strong><span>'+esc(contactPhone(p))+'</span></button>').join(""):'<p style="padding:16px;color:#9aa6b2">Nenhum contato encontrado.</p>';
     options.querySelectorAll(".contact-option").forEach(btn=>btn.onclick=()=>{
       const person=list[Number(btn.dataset.contact)];

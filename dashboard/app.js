@@ -192,42 +192,54 @@ function updateGoogleContacts(){
   googleContactsTokenClient.requestAccessToken({prompt});
 }
 function findContactsForDelivery(e){
-  const key=deliveryAddressKey(e);if(!key)return [];
+  const key=deliveryAddressKey(e);
+  if(!key)return [];
   return googleContactsCache.filter(p=>contactMatches(p,key)&&contactPhone(p));
+}
+function findContactsForName(e){
+  const nome=String(e.enderecoReferencia||"").trim();
+  if(!nome)return [];
+  return googleContactsCache.filter(p=>contactPhone(p)&&contactNameMatches(p,nome));
+}
+function openChargeMatchesPicker(e,matches,titleText){
+  const overlay=document.createElement("div");
+  overlay.className="modal-overlay";
+  overlay.innerHTML='<div class="modal-card charge-modal"><div class="modal-head"><div><small>COBRANÇA</small><h2>Escolha o cliente</h2><p>'+esc(titleText)+'</p></div><button class="modal-close" id="closeCharge">×</button></div><div class="contact-options">'+matches.map((p,i)=>'<button class="contact-option" data-contact="'+i+'"><strong>'+esc(googleContactName(p))+'</strong><span>'+esc(contactPhone(p))+'</span></button>').join("")+'</div></div>';
+  document.body.appendChild(overlay);
+  overlay.querySelector("#closeCharge").onclick=()=>overlay.remove();
+  overlay.querySelectorAll(".contact-option").forEach(btn=>btn.onclick=()=>{
+    const person=matches[Number(btn.dataset.contact)];
+    overlay.remove();
+    openWhatsappCharge(e,person);
+  });
 }
 async function startCharge(id){
   const e=currentDocs.find(x=>x.id===id);if(!e)return;
   if(!googleContactsDbLoaded)await loadGoogleContactsFromDb();
 
-  const matches=findContactsForDelivery(e);
-  if(matches.length===1){openWhatsappCharge(e,matches[0]);return;}
-  if(matches.length>1){
-    const overlay=document.createElement("div");overlay.className="modal-overlay";
-    overlay.innerHTML='<div class="modal-card charge-modal"><div class="modal-head"><div><small>COBRANÇA</small><h2>Escolha o cliente</h2><p>Encontramos '+matches.length+' contatos para <b>'+esc(deliveryAddressKey(e))+'</b>.</p></div><button class="modal-close" id="closeCharge">×</button></div><div class="contact-options">'+matches.map((p,i)=>'<button class="contact-option" data-contact="'+i+'"><strong>'+esc(googleContactName(p))+'</strong><span>'+esc(contactPhone(p))+'</span></button>').join("")+'</div></div>';
-    document.body.appendChild(overlay);
-    document.getElementById("closeCharge").onclick=()=>overlay.remove();
-    overlay.querySelectorAll(".contact-option").forEach(btn=>btn.onclick=()=>{
-      const person=matches[Number(btn.dataset.contact)];
-      overlay.remove();
-      openWhatsappCharge(e,person);
-    });
+  // SEM ENDEREÇO: a referência é o nome do cliente. Não procura pela chave de endereço.
+  if(e.semEndereco){
+    const nome=String(e.enderecoReferencia||"").trim();
+    if(nome){
+      const matches=findContactsForName(e);
+      if(matches.length>=1){
+        openChargeMatchesPicker(e,matches,"Encontramos "+matches.length+" contato(s) para o nome “"+nome+"”.");
+        return;
+      }
+    }
+    openChargeContactPicker(e,nome);
     return;
   }
 
-  // Se não encontrou pelo endereço, qualquer texto em "endereço/referência"
-  // também pode ser o nome do cliente (inclusive quando semEndereco não veio salvo).
-  const nomeInformado=String(e.enderecoReferencia||"").trim();
-  if(nomeInformado){
-    const porNome=googleContactsCache.filter(p=>contactPhone(p)&&contactNameMatches(p,nomeInformado));
-    if(porNome.length>=1){
-      // Passa os resultados encontrados diretamente para a lista, sem depender de uma segunda filtragem.
-      // Mesmo com apenas 1 resultado, sempre mostra a opção para confirmação.
-      openChargeContactPicker(e,nomeInformado,porNome);
-      return;
-    }
+  // COM ENDEREÇO: procura exclusivamente pela chave formada por prédio/bloco/apartamento.
+  const matches=findContactsForDelivery(e);
+  if(matches.length===1){openWhatsappCharge(e,matches[0]);return;}
+  if(matches.length>1){
+    openChargeMatchesPicker(e,matches,"Encontramos "+matches.length+" contatos para "+deliveryAddressKey(e)+".");
+    return;
   }
 
-  // Só chega aqui quando não foi possível localizar nem pelo endereço nem pelo nome.
+  // Endereço informado, mas nenhum contato localizado.
   openChargeContactPicker(e,"");
 }
 async function markCharged(id){

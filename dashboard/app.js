@@ -164,9 +164,21 @@ async function startCharge(id){
   document.getElementById("closeCharge").onclick=()=>overlay.remove();
   overlay.querySelectorAll(".contact-option").forEach(btn=>btn.onclick=()=>{openWhatsappCharge(e,matches[Number(btn.dataset.contact)]);overlay.remove();});
 }
+async function markCharged(id){
+  const e=currentDocs.find(x=>x.id===id);if(!e)return;
+  if(!confirm("Confirmar que este cliente já foi cobrado?"))return;
+  try{
+    await db.collection("entregas").doc(e.id).update({
+      cobrancaFeita:true,
+      cobradoEm:firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }catch(err){
+    alert("Não foi possível registrar a cobrança.");
+  }
+}
 function chargeAction(e){
-  if(!e.realizada || e.resultadoPagamento==="PAGO" || (e.pagamentoInicial!=="NAO_PAGO" && e.resultadoPagamento!=="NAO_PAGO"))return "";
-  return "<button class=\"row-action charge-btn\" onclick=\"startCharge('"+esc(e.id)+"')\">COBRAR NO WHATSAPP</button>";
+  if(!e.realizada || e.resultadoPagamento==="PAGO" || e.cobrancaFeita || (e.pagamentoInicial!=="NAO_PAGO" && e.resultadoPagamento!=="NAO_PAGO"))return "";
+  return '<div class="charge-actions"><button class="row-action charge-btn" onclick="startCharge(\''+esc(e.id)+'\')">COBRAR NO WHATSAPP</button><button class="row-action charged-btn" onclick="markCharged(\''+esc(e.id)+'\')">JÁ COBREI</button></div>';
 }
 function renderChargeRow(e){
   const key=deliveryAddressKey(e);
@@ -306,7 +318,7 @@ function openNewDelivery(){
   document.getElementById("createDelivery").onclick=async()=>{
     const valor=parseMoney(document.getElementById("newValor").value);
     const msg=document.getElementById("newMsg");
-    const data={dia:todayKey(),predio:document.getElementById("newPredio").value.trim(),bloco:document.getElementById("newBloco").value.trim(),apartamento:document.getElementById("newApto").value.trim(),semEndereco:document.getElementById("newSemEndereco").checked,enderecoReferencia:document.getElementById("newReferencia").value.trim(),valorCompraCentavos:valor,pagamentoInicial:document.getElementById("newPagamento").value,resultadoPagamento:"",formaPagamento:"",caixinhaCentavos:0,observacao:"",realizada:false,sincronizacao:"SINCRONIZADA"};
+    const data={dia:todayKey(),predio:document.getElementById("newPredio").value.trim(),bloco:document.getElementById("newBloco").value.trim(),apartamento:document.getElementById("newApto").value.trim(),semEndereco:document.getElementById("newSemEndereco").checked,enderecoReferencia:document.getElementById("newReferencia").value.trim(),valorCompraCentavos:valor,pagamentoInicial:document.getElementById("newPagamento").value,resultadoPagamento:"",formaPagamento:"",caixinhaCentavos:0,observacao:"",realizada:false,cobrancaFeita:false,sincronizacao:"SINCRONIZADA"};
     try{const snap=await db.collection("entregas").get();const ids=snap.docs.map(d=>Number(d.id)).filter(n=>Number.isInteger(n)&&n>0&&n<1000000);const id=String((ids.length?Math.max(...ids):0)+1);await db.collection("entregas").doc(id).set({...data,id:Number(id),atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()});overlay.remove();}
     catch(err){msg.textContent="Não foi possível adicionar.";msg.className="save-msg error";}
   };
@@ -331,10 +343,36 @@ function showDeliveries(){
   if(addButton) addButton.onclick=openNewDelivery;
 }
 
+function dateKeyOffset(offset){
+  const d=new Date();
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate()-offset);
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function historyDateLabel(key,offset){
+  if(offset===0)return "Hoje";
+  if(offset===1)return "Ontem";
+  if(offset===2)return "Anteontem";
+  const parts=String(key||"").split("-");
+  return parts.length===3?parts[2]+"/"+parts[1]+"/"+parts[0]:key;
+}
+function renderDoneGroup(docs,key,offset){
+  const items=docs.filter(e=>e.dia===key);
+  if(!items.length)return "";
+  const charged=items.filter(e=>e.cobrancaFeita).length;
+  return '<section class="history-day"><div class="history-day-head"><div><small>'+historyDateLabel(key,offset)+'</small><h3>'+items.length+' entrega'+(items.length===1?"":"s")+'</h3></div><span>'+charged+' cobrança'+(charged===1?"":"s")+' feita'+(charged===1?"":"s")+'</span></div><div class="delivery-list">'+items.map(e=>{
+    const payment=e.resultadoPagamento==="PAGO"?"PAGO":(e.cobrancaFeita?"COBRADO":"PENDENTE");
+    const meta=[e.dia||"—",payment,e.formaPagamento||""].filter(Boolean).join(" • ");
+    return '<div class="delivery-row"><div><strong>'+esc(formatEndereco(e))+'</strong><small>'+esc(meta)+'</small></div><div class="row-end"><b>'+(e.valorCompraCentavos==null?"—":money(e.valorCompraCentavos))+'</b>'+deliveryActions(e)+'</div></div>';
+  }).join("")+'</div></section>';
+}
 function showDone(){
   setActive("done");setTitle("Realizadas");
-  const done=currentDocs.filter(e=>!!e.realizada);
-  document.querySelector("#content").innerHTML='<div class="page-head"><div><small>HISTÓRICO</small><h2>Entregas realizadas</h2><p>Registro das entregas concluídas pelo entregador.</p></div></div><article class="panel"><div class="panel-head"><div><small>TOTAL</small><h3>'+done.length+' realizada'+(done.length===1?"":"s")+'</h3></div></div><div class="delivery-list" id="pageList">'+renderList("done")+'</div></article>';
+  const days=[0,1,2].map(offset=>({offset,key:dateKeyOffset(offset)}));
+  const recentDone=currentDocs.filter(e=>!!e.realizada&&days.some(d=>d.key===e.dia));
+  const charged=recentDone.filter(e=>e.cobrancaFeita).length;
+  const groups=days.map(d=>renderDoneGroup(recentDone,d.key,d.offset)).join("");
+  document.querySelector("#content").innerHTML='<div class="page-head"><div><small>HISTÓRICO DOS ÚLTIMOS 3 DIAS</small><h2>Entregas realizadas</h2><p>Entregas concluídas separadas por dia. Cobranças já feitas ficam registradas aqui.</p></div></div><div class="stats history-stats"><article><small>ENTREGAS</small><strong>'+recentDone.length+'</strong><span>Últimos 3 dias</span></article><article><small>COBRANÇAS FEITAS</small><strong>'+charged+'</strong><span>Registradas</span></article></div><article class="panel"><div class="history-groups">'+(groups||renderEmpty("Nenhuma entrega realizada nos últimos 3 dias."))+'</div></article>';
 }
 
 async function showFinance(){

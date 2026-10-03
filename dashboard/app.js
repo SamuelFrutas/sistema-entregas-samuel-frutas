@@ -47,20 +47,38 @@ async function fetchGoogleContacts(token){
   googleContactsCache=people; googleContactsToken=token; return people;
 }
 function setGoogleContactsMessage(msg){const el=document.querySelector("#googleContactsMsg");if(el)el.textContent=msg;}
-function connectGoogleContacts(){
-  if(!GOOGLE_CONTACTS_CLIENT_ID){alert("A integração está preparada, mas falta cadastrar o OAuth Client ID do Google Cloud.");return;}
-  if(!window.google?.accounts?.oauth2){alert("O componente do Google ainda está carregando. Tente novamente.");return;}
+function initGoogleContactsClient(){
+  if(!GOOGLE_CONTACTS_CLIENT_ID || !window.google?.accounts?.oauth2) return false;
   if(!googleContactsTokenClient){
     googleContactsTokenClient=google.accounts.oauth2.initTokenClient({
       client_id:GOOGLE_CONTACTS_CLIENT_ID,scope:GOOGLE_CONTACTS_SCOPE,
       callback:async response=>{
-        if(response.error){setGoogleContactsMessage("Não foi possível autorizar o Google Contacts.");return;}
-        try{setGoogleContactsMessage("Carregando contatos do Google...");await fetchGoogleContacts(response.access_token);showCharges();}
-        catch(err){setGoogleContactsMessage(err.message==="AUTH_EXPIRED"?"A autorização expirou. Conecte novamente.":"Erro ao carregar os contatos.");}
+        if(response.error){setGoogleContactsMessage("Não foi possível reconectar o Google Contacts automaticamente.");return;}
+        try{
+          setGoogleContactsMessage("Carregando contatos do Google...");
+          await fetchGoogleContacts(response.access_token);
+          localStorage.setItem("samuel_google_contacts_connected","1");
+          showCharges();
+        }catch(err){
+          setGoogleContactsMessage(err.message==="AUTH_EXPIRED"?"A autorização expirou. Conecte novamente.":"Erro ao carregar os contatos.");
+        }
       }
     });
   }
+  return true;
+}
+function connectGoogleContacts(){
+  if(!initGoogleContactsClient()){
+    if(!GOOGLE_CONTACTS_CLIENT_ID) alert("A integração está preparada, mas falta cadastrar o OAuth Client ID do Google Cloud.");
+    else alert("O componente do Google ainda está carregando. Tente novamente.");
+    return;
+  }
   googleContactsTokenClient.requestAccessToken({prompt:"consent"});
+}
+function reconnectGoogleContactsSilently(){
+  if(!localStorage.getItem("samuel_google_contacts_connected")) return;
+  if(!initGoogleContactsClient()) return;
+  googleContactsTokenClient.requestAccessToken({prompt:""});
 }
 function findContactsForDelivery(e){
   const key=deliveryAddressKey(e); if(!key)return [];
@@ -91,6 +109,7 @@ function showCharges(){
   const unpaid=currentDocs.filter(e=>!!e.realizada&&e.pagamentoInicial==="NAO_PAGO"&&e.resultadoPagamento!=="PAGO");
   document.querySelector("#content").innerHTML='<div class="page-head page-head-actions"><div><small>CLIENTES COM PAGAMENTO PENDENTE</small><h2>Cobrar pelo WhatsApp</h2><p>O sistema procura o endereço no nome do contato do Google e abre a conversa com a mensagem pronta.</p></div><button class="primary add-btn" id="googleContactsButton">'+(googleContactsCache.length?"ATUALIZAR CONTATOS":"CONECTAR GOOGLE CONTATOS")+'</button></div><div class="panel charge-connection"><div><small>GOOGLE CONTACTS</small><h3>'+esc(googleContactsStatusText())+'</h3><p id="googleContactsMsg">O endereço será procurado dentro do nome do contato, por exemplo: Márcia 1350/1/1608.</p></div></div><article class="panel"><div class="panel-head"><div><small>PAGAMENTOS</small><h3>'+unpaid.length+' pendente'+(unpaid.length===1?"":"s")+'</h3></div></div><div class="delivery-list">'+(unpaid.length?unpaid.map(renderChargeRow).join(""):renderEmpty("Nenhuma cobrança pendente."))+'</div></article>';
   document.getElementById("googleContactsButton").onclick=connectGoogleContacts;
+  if(googleContactsCache.length===0) setTimeout(reconnectGoogleContactsSilently,250);
 }
 
 function money(c){return (Number(c||0)/100).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});}

@@ -14,7 +14,7 @@ data class EntregaLocal(
     val realizada: Boolean = false, val sincronizacao: String = "PENDENTE"
 )
 
-class EntregaDbHelper(context: Context) : SQLiteOpenHelper(context, "entregas.db", null, 1) {
+class EntregaDbHelper(context: Context) : SQLiteOpenHelper(context, "entregas.db", null, 2) {
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL("""CREATE TABLE entregas (
             id INTEGER PRIMARY KEY AUTOINCREMENT, dia TEXT NOT NULL,
@@ -26,8 +26,19 @@ class EntregaDbHelper(context: Context) : SQLiteOpenHelper(context, "entregas.db
             realizada INTEGER NOT NULL DEFAULT 0, sincronizacao TEXT NOT NULL DEFAULT 'PENDENTE'
         )""")
         db.execSQL("CREATE INDEX idx_entregas_dia ON entregas(dia)")
+        db.execSQL("""CREATE TABLE exclusoes_pendentes (
+            id INTEGER PRIMARY KEY,
+            criado_em INTEGER NOT NULL
+        )""")
     }
-    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        if (oldVersion < 2) {
+            db.execSQL("""CREATE TABLE IF NOT EXISTS exclusoes_pendentes (
+                id INTEGER PRIMARY KEY,
+                criado_em INTEGER NOT NULL
+            )""")
+        }
+    }
     fun inserir(e: EntregaLocal): Long {
         val v = ContentValues().apply {
             put("dia",e.dia);put("predio",e.predio);put("bloco",e.bloco);put("apartamento",e.apartamento)
@@ -87,6 +98,54 @@ class EntregaDbHelper(context: Context) : SQLiteOpenHelper(context, "entregas.db
         writableDatabase.delete("entregas", "id=?", arrayOf(id.toString()))
     }
 
+    fun excluirLocalPendente(id: Long) {
+        val db = writableDatabase
+        db.beginTransaction()
+        try {
+            db.delete("entregas", "id=?", arrayOf(id.toString()))
+            val tombstone = ContentValues().apply {
+                put("id", id)
+                put("criado_em", System.currentTimeMillis())
+            }
+            db.insertWithOnConflict("exclusoes_pendentes", null, tombstone, SQLiteDatabase.CONFLICT_REPLACE)
+            db.setTransactionSuccessful()
+        } finally {
+            db.endTransaction()
+        }
+    }
+
+    fun temExclusaoPendente(id: Long): Boolean =
+        readableDatabase.query(
+            "exclusoes_pendentes",
+            arrayOf("id"),
+            "id=?",
+            arrayOf(id.toString()),
+            null, null, null, "1"
+        ).use { it.moveToFirst() }
+
+    fun listarExclusoesPendentes(): List<Long> {
+        val out = mutableListOf<Long>()
+        readableDatabase.query("exclusoes_pendentes", arrayOf("id"), null, null, null, null, "criado_em ASC").use { c ->
+            while (c.moveToNext()) out += c.getLong(c.getColumnIndexOrThrow("id"))
+        }
+        return out
+    }
+
+    fun limparExclusaoPendente(id: Long) {
+        writableDatabase.delete("exclusoes_pendentes", "id=?", arrayOf(id.toString()))
+    }
+
+    fun sincronizacaoPendente(id: Long): Boolean =
+        readableDatabase.query(
+            "entregas",
+            arrayOf("sincronizacao"),
+            "id=?",
+            arrayOf(id.toString()),
+            null, null, null, "1"
+        ).use { c ->
+            c.moveToFirst() && c.getString(c.getColumnIndexOrThrow("sincronizacao")) == "PENDENTE"
+        }
+    
     fun sincronizarDoFirestore(e: EntregaLocal) {
         val v = ContentValues().apply {
             put("dia", e.dia)

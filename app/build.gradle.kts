@@ -12,8 +12,8 @@ android {
         applicationId = "br.com.samuelfrutas.entregas"
         minSdk = 24
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.1.1"
+        versionCode = 3
+        versionName = "0.1.2"
     }
 }
 
@@ -21,8 +21,8 @@ kotlin {
     jvmToolchain(17)
 }
 
-// Ajustes isolados nas telas de entregas realizadas e no resumo da tela inicial.
-// Aplicados somente durante o build, sem alterar o fluxo de cadastro, pagamento ou sincronização.
+// Ajustes das telas do APK aplicados no código-fonte durante o build.
+// A transformação é idempotente e usa os trechos reais de MainActivity.kt.
 val patchCompletedCard = tasks.register("patchCompletedCard") {
     doLast {
         val source = file("src/main/java/br/com/samuelfrutas/entregas/MainActivity.kt")
@@ -42,18 +42,20 @@ val patchCompletedCard = tasks.register("patchCompletedCard") {
     }
 
 """
-            check(functionMarker in text) { "Não foi possível localizar makeCompletedCard para aplicar o ajuste." }
+            check(text.contains(functionMarker)) { "Não foi possível localizar makeCompletedCard." }
             text = text.replace(functionMarker, helper + functionMarker)
         }
 
         if (!text.contains("addCompletedExtras(box, e)")) {
-            val returnMarker = "        box.addView(body)\n        return box.apply {"
-            check(returnMarker in text) { "Não foi possível localizar o final de makeCompletedCard para aplicar o ajuste." }
-            text = text.replace(returnMarker, "        box.addView(body)\n        addCompletedExtras(box, e)\n        return box.apply {")
+            val returnMarker = "        box.addView(txt(detail, 12f, if (result == \"Pago\") green else Color.rgb(240, 70, 75), true))\n        return box"
+            check(text.contains(returnMarker)) { "Não foi possível localizar o final real de makeCompletedCard." }
+            text = text.replace(
+                returnMarker,
+                "        box.addView(txt(detail, 12f, if (result == \"Pago\") green else Color.rgb(240, 70, 75), true))\n        addCompletedExtras(box, e)\n        return box"
+            )
         }
 
-        // Deixa os números PENDENTES e REALIZADAS da tela inicial bem maiores e destacados.
-        if (!text.contains("// CONTADORES_RESUMO_MAIORES")) {
+        if (!text.contains("CONTADORES_RESUMO_MAIORES")) {
             val pendingMarker = "        val pending = iconTitle(R.drawable.ic_pending, \"PENDENTES\", pendingCount.toString())"
             val pendingReplacement = """        val pending = iconTitle(R.drawable.ic_pending, "PENDENTES", pendingCount.toString()).apply {
             // CONTADORES_RESUMO_MAIORES
@@ -65,7 +67,7 @@ val patchCompletedCard = tasks.register("patchCompletedCard") {
                 setPadding(dp(10), dp(2), dp(2), dp(2))
             }
         }"""
-            check(pendingMarker in text) { "Não foi possível localizar o contador PENDENTES." }
+            check(text.contains(pendingMarker)) { "Não foi possível localizar o contador PENDENTES." }
             text = text.replace(pendingMarker, pendingReplacement)
 
             val doneMarker = "        val done = iconTitle(R.drawable.ic_check_circle, \"REALIZADAS\", doneCount.toString())"
@@ -78,7 +80,7 @@ val patchCompletedCard = tasks.register("patchCompletedCard") {
                 setPadding(dp(10), dp(2), dp(2), dp(2))
             }
         }"""
-            check(doneMarker in text) { "Não foi possível localizar o contador REALIZADAS." }
+            check(text.contains(doneMarker)) { "Não foi possível localizar o contador REALIZADAS." }
             text = text.replace(doneMarker, doneReplacement)
         }
 

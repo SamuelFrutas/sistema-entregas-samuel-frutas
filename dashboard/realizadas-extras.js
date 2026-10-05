@@ -28,7 +28,8 @@
         if(!obs) return;
         const el=document.createElement('div');
         el.className='web-observation';
-        el.textContent='⚠️ Observação: '+obs;
+        el.innerHTML='<span class="web-observation-icon">⚠️</span><div><strong>Observação</strong><span class="web-observation-text"></span></div>';
+        el.querySelector('.web-observation-text').textContent=obs;
         row.appendChild(el);
       });
     });
@@ -43,7 +44,7 @@
     };
   }
   const style=document.createElement('style');
-  style.textContent='.web-observation{margin-top:10px;padding:9px 12px;border-radius:10px;background:rgba(255,196,0,.08);border-left:3px solid #ffd54a;color:#ffd54a;font-size:13px;font-weight:700;line-height:1.35;word-break:break-word}';
+  style.textContent='.history-day .delivery-row{flex-wrap:wrap;align-items:center}.history-day .web-observation{flex:1 1 100%;width:100%;min-width:0;display:flex;align-items:flex-start;gap:10px;margin-top:2px;padding:10px 12px;border-radius:10px;background:rgba(255,196,0,.08);border:1px solid rgba(255,213,74,.22);border-left:4px solid #ffd54a;color:#ffd54a;font-size:13px;font-weight:700;line-height:1.35;box-sizing:border-box}.web-observation-icon{flex:0 0 auto;font-size:16px;line-height:1.35}.web-observation>div{min-width:0}.web-observation strong{display:block;color:#ffd54a;font-size:12px;margin:0 0 2px;letter-spacing:.02em}.web-observation-text{display:block;color:#ffe68a;font-weight:600;white-space:normal;overflow-wrap:anywhere;word-break:normal}@media(max-width:800px){.history-day .web-observation{margin-top:3px;padding:10px 11px;font-size:13px}.web-observation strong{font-size:12px}.web-observation-icon{font-size:15px}}';
   document.head.appendChild(style);
   setTimeout(decorate,100);
   setTimeout(decorate,500);

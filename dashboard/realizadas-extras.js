@@ -6,6 +6,10 @@
   function normalize(v){
     return String(v||'').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
   }
+  function sameDelivery(a,b){
+    if(!a||!b) return false;
+    return normalize(formatEndereco(a))===normalize(formatEndereco(b));
+  }
   function decorate(){
     const title=document.getElementById('pageTitle');
     if(!title || normalize(title.textContent)!=='realizadas') return;
@@ -18,7 +22,8 @@
         row.querySelectorAll('.web-observation').forEach(el=>el.remove());
         const strong=row.querySelector('strong');
         const rowAddress=normalize(strong?.textContent||'');
-        const matched=source.find(e=>normalize(formatEndereco(e))===rowAddress) || source[i];
+        const candidates=source.filter(e=>normalize(formatEndereco(e))===rowAddress);
+        const matched=candidates.length===1 ? candidates[0] : (candidates[0] || source[i]);
         const obs=String(matched?.observacao||'').trim();
         if(!obs) return;
         const el=document.createElement('div');
@@ -34,6 +39,7 @@
       oldShowDone.apply(this,arguments);
       setTimeout(decorate,0);
       setTimeout(decorate,150);
+      setTimeout(decorate,500);
     };
   }
   const style=document.createElement('style');

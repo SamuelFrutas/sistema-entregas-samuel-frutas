@@ -21,8 +21,7 @@ kotlin {
     jvmToolchain(17)
 }
 
-// Ajustes das telas do APK aplicados no código-fonte durante o build.
-// A transformação é idempotente e usa os trechos reais de MainActivity.kt.
+// Ajustes das telas do APK aplicados durante o build, usando os trechos reais de MainActivity.kt.
 val patchCompletedCard = tasks.register("patchCompletedCard") {
     doLast {
         val source = file("src/main/java/br/com/samuelfrutas/entregas/MainActivity.kt")
@@ -49,10 +48,7 @@ val patchCompletedCard = tasks.register("patchCompletedCard") {
         if (!text.contains("addCompletedExtras(box, e)")) {
             val returnMarker = "        box.addView(txt(detail, 12f, if (result == \"Pago\") green else Color.rgb(240, 70, 75), true))\n        return box"
             check(text.contains(returnMarker)) { "Não foi possível localizar o final real de makeCompletedCard." }
-            text = text.replace(
-                returnMarker,
-                "        box.addView(txt(detail, 12f, if (result == \"Pago\") green else Color.rgb(240, 70, 75), true))\n        addCompletedExtras(box, e)\n        return box"
-            )
+            text = text.replace(returnMarker, "        box.addView(txt(detail, 12f, if (result == \"Pago\") green else Color.rgb(240, 70, 75), true))\n        addCompletedExtras(box, e)\n        return box")
         }
 
         if (!text.contains("CONTADORES_RESUMO_MAIORES")) {
@@ -84,6 +80,9 @@ val patchCompletedCard = tasks.register("patchCompletedCard") {
             text = text.replace(doneMarker, doneReplacement)
         }
 
+        check(text.contains("private fun addCompletedExtras")) { "Correção de caixinha/observação não aplicada." }
+        check(text.contains("addCompletedExtras(box, e)")) { "Correção de caixinha/observação não chamada." }
+        check(text.contains("textSize = 25f")) { "Correção dos contadores não aplicada." }
         source.writeText(text)
     }
 }

@@ -21,8 +21,8 @@ kotlin {
     jvmToolchain(17)
 }
 
-// Mantém a alteração isolada na tela de entregas realizadas do APK.
-// O patch é aplicado somente durante o build, sem mexer no fluxo de cadastro, pagamento ou sincronização.
+// Ajustes isolados nas telas de entregas realizadas e no resumo da tela inicial.
+// Aplicados somente durante o build, sem alterar o fluxo de cadastro, pagamento ou sincronização.
 val patchCompletedCard = tasks.register("patchCompletedCard") {
     doLast {
         val source = file("src/main/java/br/com/samuelfrutas/entregas/MainActivity.kt")
@@ -33,11 +33,11 @@ val patchCompletedCard = tasks.register("patchCompletedCard") {
             val helper = """
     private fun addCompletedExtras(box: LinearLayout, e: EntregaLocal) {
         if (e.caixinhaCentavos > 0) {
-            box.addView(txt("Caixinha: " + centsText(e.caixinhaCentavos), 12f, green, true))
+            box.addView(txt("Caixinha: " + centsText(e.caixinhaCentavos), 13f, green, true))
         }
         val observation = e.observacao.trim()
         if (observation.isNotBlank()) {
-            box.addView(txt("⚠️ Observação: " + observation, 12f, Color.rgb(255, 213, 74), true))
+            box.addView(txt("⚠️ Observação: " + observation, 13f, Color.rgb(255, 213, 74), true))
         }
     }
 
@@ -50,6 +50,36 @@ val patchCompletedCard = tasks.register("patchCompletedCard") {
             val returnMarker = "        box.addView(body)\n        return box.apply {"
             check(returnMarker in text) { "Não foi possível localizar o final de makeCompletedCard para aplicar o ajuste." }
             text = text.replace(returnMarker, "        box.addView(body)\n        addCompletedExtras(box, e)\n        return box.apply {")
+        }
+
+        // Deixa os números PENDENTES e REALIZADAS da tela inicial bem maiores e destacados.
+        if (!text.contains("// CONTADORES_RESUMO_MAIORES")) {
+            val pendingMarker = "        val pending = iconTitle(R.drawable.ic_pending, \"PENDENTES\", pendingCount.toString())"
+            val pendingReplacement = """        val pending = iconTitle(R.drawable.ic_pending, "PENDENTES", pendingCount.toString()).apply {
+            // CONTADORES_RESUMO_MAIORES
+            val texts = getChildAt(1) as? LinearLayout
+            (texts?.getChildAt(1) as? TextView)?.apply {
+                textSize = 25f
+                setTextColor(Color.WHITE)
+                setTypeface(null, Typeface.BOLD)
+                setPadding(dp(10), dp(2), dp(2), dp(2))
+            }
+        }"""
+            check(pendingMarker in text) { "Não foi possível localizar o contador PENDENTES." }
+            text = text.replace(pendingMarker, pendingReplacement)
+
+            val doneMarker = "        val done = iconTitle(R.drawable.ic_check_circle, \"REALIZADAS\", doneCount.toString())"
+            val doneReplacement = """        val done = iconTitle(R.drawable.ic_check_circle, "REALIZADAS", doneCount.toString()).apply {
+            val texts = getChildAt(1) as? LinearLayout
+            (texts?.getChildAt(1) as? TextView)?.apply {
+                textSize = 25f
+                setTextColor(Color.WHITE)
+                setTypeface(null, Typeface.BOLD)
+                setPadding(dp(10), dp(2), dp(2), dp(2))
+            }
+        }"""
+            check(doneMarker in text) { "Não foi possível localizar o contador REALIZADAS." }
+            text = text.replace(doneMarker, doneReplacement)
         }
 
         source.writeText(text)

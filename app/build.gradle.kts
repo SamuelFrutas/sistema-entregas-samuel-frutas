@@ -80,6 +80,10 @@ val patchCompletedCard = tasks.register("patchCompletedCard") {
             text = text.replace(doneMarker, doneReplacement)
         }
 
+        // Ajuste de respiro no topo para evitar que a barra de título fique colada ao status bar.
+        text = text.replace("setPadding(dp(16), dp(8), dp(16), dp(20))", "setPadding(dp(16), dp(18), dp(16), dp(20))")
+        text = text.replace("setPadding(0, dp(4), 0, dp(10))", "setPadding(0, dp(8), 0, dp(10))")
+
         if (!text.contains("OBSERVACAO_ENTREGA_NOVA_V1")) {
             val newFieldMarker = "        val ref = field(\"Endereço / referência *\")\n"
             val newFieldReplacement = """        val ref = field("Endereço / referência *")

@@ -11,10 +11,11 @@ data class EntregaLocal(
     val valorCompraCentavos: Long?, val pagamentoInicial: String,
     val resultadoPagamento: String = "", val formaPagamento: String = "",
     val caixinhaCentavos: Long = 0, val observacao: String = "",
+    val observacaoEntrega: String = "",
     val realizada: Boolean = false, val sincronizacao: String = "PENDENTE"
 )
 
-class EntregaDbHelper(context: Context) : SQLiteOpenHelper(context, "entregas.db", null, 2) {
+class EntregaDbHelper(context: Context) : SQLiteOpenHelper(context, "entregas.db", null, 3) {
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL("""CREATE TABLE entregas (
             id INTEGER PRIMARY KEY AUTOINCREMENT, dia TEXT NOT NULL,
@@ -23,6 +24,7 @@ class EntregaDbHelper(context: Context) : SQLiteOpenHelper(context, "entregas.db
             valor_compra_centavos INTEGER, pagamento_inicial TEXT NOT NULL,
             resultado_pagamento TEXT NOT NULL DEFAULT '', forma_pagamento TEXT NOT NULL DEFAULT '',
             caixinha_centavos INTEGER NOT NULL DEFAULT 0, observacao TEXT NOT NULL DEFAULT '',
+            observacao_entrega TEXT NOT NULL DEFAULT '',
             realizada INTEGER NOT NULL DEFAULT 0, sincronizacao TEXT NOT NULL DEFAULT 'PENDENTE'
         )""")
         db.execSQL("CREATE INDEX idx_entregas_dia ON entregas(dia)")
@@ -38,6 +40,9 @@ class EntregaDbHelper(context: Context) : SQLiteOpenHelper(context, "entregas.db
                 criado_em INTEGER NOT NULL
             )""")
         }
+        if (oldVersion < 3) {
+            db.execSQL("ALTER TABLE entregas ADD COLUMN observacao_entrega TEXT NOT NULL DEFAULT ''")
+        }
     }
     fun inserir(e: EntregaLocal): Long {
         val v = ContentValues().apply {
@@ -45,6 +50,7 @@ class EntregaDbHelper(context: Context) : SQLiteOpenHelper(context, "entregas.db
             put("sem_endereco",if(e.semEndereco)1 else 0);put("endereco_referencia",e.enderecoReferencia)
             if(e.valorCompraCentavos==null)putNull("valor_compra_centavos") else put("valor_compra_centavos",e.valorCompraCentavos)
             put("pagamento_inicial",e.pagamentoInicial);put("observacao",e.observacao)
+            put("observacao_entrega",e.observacaoEntrega)
         }
         return writableDatabase.insertOrThrow("entregas",null,v)
     }
@@ -58,6 +64,7 @@ class EntregaDbHelper(context: Context) : SQLiteOpenHelper(context, "entregas.db
             if (e.valorCompraCentavos == null) putNull("valor_compra_centavos")
             else put("valor_compra_centavos", e.valorCompraCentavos)
             put("pagamento_inicial", e.pagamentoInicial)
+            put("observacao_entrega", e.observacaoEntrega)
             put("sincronizacao", "PENDENTE")
         }
         writableDatabase.update("entregas", v, "id=?", arrayOf(e.id.toString()))
@@ -78,6 +85,7 @@ class EntregaDbHelper(context: Context) : SQLiteOpenHelper(context, "entregas.db
             put("forma_pagamento", e.formaPagamento)
             put("caixinha_centavos", e.caixinhaCentavos)
             put("observacao", e.observacao)
+            put("observacao_entrega", e.observacaoEntrega)
             put("realizada", if (e.realizada) 1 else 0)
             put("sincronizacao", "SINCRONIZADA")
         }
@@ -161,6 +169,7 @@ class EntregaDbHelper(context: Context) : SQLiteOpenHelper(context, "entregas.db
             put("forma_pagamento", e.formaPagamento)
             put("caixinha_centavos", e.caixinhaCentavos)
             put("observacao", e.observacao)
+            put("observacao_entrega", e.observacaoEntrega)
             put("realizada", if (e.realizada) 1 else 0)
             put("sincronizacao", "SINCRONIZADA")
         }
@@ -190,6 +199,7 @@ class EntregaDbHelper(context: Context) : SQLiteOpenHelper(context, "entregas.db
                 formaPagamento=c.getString(c.getColumnIndexOrThrow("forma_pagamento")),
                 caixinhaCentavos=c.getLong(c.getColumnIndexOrThrow("caixinha_centavos")),
                 observacao=c.getString(c.getColumnIndexOrThrow("observacao")),
+                observacaoEntrega=c.getString(c.getColumnIndexOrThrow("observacao_entrega")),
                 realizada=c.getInt(c.getColumnIndexOrThrow("realizada"))==1,
                 sincronizacao=c.getString(c.getColumnIndexOrThrow("sincronizacao")))
         }

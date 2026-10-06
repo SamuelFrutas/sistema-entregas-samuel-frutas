@@ -21,10 +21,15 @@
         const matched=source.find(e=>normalize(formatEndereco(e))===rowAddress) || source[i];
         const obs=String(matched?.observacao||'').trim();
         if(!obs) return;
+
+        // A observação pertence às informações da entrega.
+        // Colocamos diretamente na coluna esquerda, logo abaixo do status/forma de pagamento.
+        const info=row.querySelector(':scope > div:first-child');
+        if(!info) return;
         const el=document.createElement('div');
         el.className='web-observation';
         el.textContent='⚠️ Observação: '+obs;
-        row.appendChild(el);
+        info.appendChild(el);
       });
     });
   }
@@ -37,7 +42,7 @@
     };
   }
   const style=document.createElement('style');
-  style.textContent='.history-day .delivery-row .web-observation{flex:0 0 100%;width:100%;min-width:0;box-sizing:border-box;margin-top:10px;padding:9px 12px;border-radius:10px;background:rgba(255,196,0,.08);border-left:3px solid #ffd54a;color:#ffd54a;font-size:13px;font-weight:700;line-height:1.35;word-break:break-word}';
+  style.textContent='.history-day .delivery-row .web-observation{display:block;width:100%;box-sizing:border-box;margin-top:7px;padding:7px 0 0;border-top:1px solid rgba(255,213,74,.18);color:#ffd54a;font-size:13px;font-weight:700;line-height:1.35;word-break:break-word}.history-day .delivery-row .web-observation::first-letter{font-size:15px}';
   document.head.appendChild(style);
   setTimeout(decorate,100);
   setTimeout(decorate,500);

@@ -80,17 +80,17 @@ val patchCompletedCard = tasks.register("patchCompletedCard") {
             text = text.replace(doneMarker, doneReplacement)
         }
 
-        // Ajuste de respiro no topo para evitar que a barra de título fique colada ao status bar.
-        text = text.replace("setPadding(dp(16), dp(8), dp(16), dp(20))", "setPadding(dp(16), dp(18), dp(16), dp(20))")
-        text = text.replace("setPadding(0, dp(4), 0, dp(10))", "setPadding(0, dp(8), 0, dp(10))")
+        // Mais respiro no topo das telas internas para afastar o titulo do status bar.
+        text = text.replace("setPadding(dp(16), dp(18), dp(16), dp(20))", "setPadding(dp(16), dp(30), dp(16), dp(20))")
+        text = text.replace("setPadding(0, dp(8), 0, dp(10))", "setPadding(0, dp(10), 0, dp(10))")
 
         if (!text.contains("OBSERVACAO_ENTREGA_NOVA_V1")) {
             val newFieldMarker = "        val ref = field(\"Endereço / referência *\")\n"
             val newFieldReplacement = """        val ref = field("Endereço / referência *")
         // OBSERVACAO_ENTREGA_NOVA_V1
         val obsEntrega = field("Observação da entrega (opcional)").apply {
-            minHeight = dp(58)
-            setPadding(dp(14), dp(7), dp(14), dp(7))
+            minHeight = dp(54)
+            setPadding(dp(14), dp(4), dp(14), dp(4))
             background = rounded(Color.rgb(8, 34, 49), 14f, Color.rgb(55, 105, 126))
             setOnFocusChangeListener { _, focused ->
                 background = rounded(Color.rgb(8, 34, 49), 14f, if (focused) green else Color.rgb(55, 105, 126))
@@ -100,15 +100,13 @@ val patchCompletedCard = tasks.register("patchCompletedCard") {
             check(text.contains(newFieldMarker)) { "Não foi possível localizar o campo de referência da nova entrega." }
             text = text.replace(newFieldMarker, newFieldReplacement)
 
-            val addRefMarker = "        add(row1); add(semBloco, 2); add(alphaBlock, 0); add(noAddress, 6); add(ref)"
-            val addRefReplacement = "        add(row1); add(semBloco, 2); add(alphaBlock, 0); add(noAddress, 6); add(ref, 2); add(obsEntrega, 12)"
+            val addRefMarker = "        add(row1); add(semBloco, 2); add(alphaBlock, 0); add(noAddress, 6); add(ref, 2); add(obsEntrega, 12)"
+            val addRefReplacement = "        add(row1); add(semBloco, 2); add(alphaBlock, 0); add(noAddress, 6); add(ref, 6); add(obsEntrega, 10)"
             check(text.contains(addRefMarker)) { "Não foi possível localizar os campos da nova entrega." }
             text = text.replace(addRefMarker, addRefReplacement)
 
-            val currentMarker = "                enderecoReferencia = ref.text.toString(),\n                valorCompraCentavos = null,"
-            val currentReplacement = "                enderecoReferencia = ref.text.toString(),\n                observacaoEntrega = obsEntrega.text.toString().trim(),\n                valorCompraCentavos = null,"
+            val currentMarker = "                enderecoReferencia = ref.text.toString(),\n                observacaoEntrega = obsEntrega.text.toString().trim(),\n                valorCompraCentavos = null,"
             check(text.contains(currentMarker)) { "Não foi possível salvar a observação da nova entrega." }
-            text = text.replace(currentMarker, currentReplacement)
 
             val reviewMarker = "        add(card(\"⌖  \" + address, 15f), 6)\n"
             val reviewReplacement = """        add(card("⌖  " + address, 15f), 6)
@@ -142,10 +140,8 @@ val patchCompletedCard = tasks.register("patchCompletedCard") {
             check(text.contains(editAddMarker)) { "Não foi possível adicionar a observação na edição." }
             text = text.replace(editAddMarker, editAddReplacement)
 
-            val editCopyMarker = "                enderecoReferencia = ref.text.toString(),\n                valorCompraCentavos = cents,"
-            val editCopyReplacement = "                enderecoReferencia = ref.text.toString(),\n                observacaoEntrega = obsEntrega.text.toString().trim(),\n                valorCompraCentavos = cents,"
+            val editCopyMarker = "                enderecoReferencia = ref.text.toString(),\n                observacaoEntrega = obsEntrega.text.toString().trim(),\n                valorCompraCentavos = cents,"
             check(text.contains(editCopyMarker)) { "Não foi possível salvar a observação na edição." }
-            text = text.replace(editCopyMarker, editCopyReplacement)
         }
 
         check(text.contains("observacaoEntrega = obsEntrega.text.toString().trim()")) { "Campo de observação da entrega não foi aplicado." }

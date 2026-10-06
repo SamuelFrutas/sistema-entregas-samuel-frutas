@@ -37,7 +37,7 @@
     };
   }
   const style=document.createElement('style');
-  style.textContent='.web-observation{margin-top:10px;padding:9px 12px;border-radius:10px;background:rgba(255,196,0,.08);border-left:3px solid #ffd54a;color:#ffd54a;font-size:13px;font-weight:700;line-height:1.35;word-break:break-word}';
+  style.textContent='.history-day .delivery-row .web-observation{flex:0 0 100%;width:100%;min-width:0;box-sizing:border-box;margin-top:10px;padding:9px 12px;border-radius:10px;background:rgba(255,196,0,.08);border-left:3px solid #ffd54a;color:#ffd54a;font-size:13px;font-weight:700;line-height:1.35;word-break:break-word}';
   document.head.appendChild(style);
   setTimeout(decorate,100);
   setTimeout(decorate,500);

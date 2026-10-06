@@ -12,8 +12,8 @@ android {
         applicationId = "br.com.samuelfrutas.entregas"
         minSdk = 24
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.1.2"
+        versionCode = 4
+        versionName = "0.1.3"
     }
 }
 
@@ -80,9 +80,66 @@ val patchCompletedCard = tasks.register("patchCompletedCard") {
             text = text.replace(doneMarker, doneReplacement)
         }
 
-        check(text.contains("private fun addCompletedExtras")) { "Correção de caixinha/observação não aplicada." }
-        check(text.contains("addCompletedExtras(box, e)")) { "Correção de caixinha/observação não chamada." }
-        check(text.contains("textSize = 25f")) { "Correção dos contadores não aplicada." }
+        if (!text.contains("OBSERVACAO_ENTREGA_NOVA_V1")) {
+            val newFieldMarker = "        val ref = field(\"Endereço / referência *\")\n"
+            val newFieldReplacement = """        val ref = field("Endereço / referência *")
+        // OBSERVACAO_ENTREGA_NOVA_V1
+        val obsEntrega = field("Observação da entrega (opcional)")
+"""
+            check(text.contains(newFieldMarker)) { "Não foi possível localizar o campo de referência da nova entrega." }
+            text = text.replace(newFieldMarker, newFieldReplacement)
+
+            val addRefMarker = "        add(row1); add(semBloco, 2); add(alphaBlock, 0); add(noAddress, 6); add(ref)"
+            val addRefReplacement = "        add(row1); add(semBloco, 2); add(alphaBlock, 0); add(noAddress, 6); add(ref); add(obsEntrega, 6)"
+            check(text.contains(addRefMarker)) { "Não foi possível localizar os campos da nova entrega." }
+            text = text.replace(addRefMarker, addRefReplacement)
+
+            val currentMarker = "                enderecoReferencia = ref.text.toString(),\n                valorCompraCentavos = null,"
+            val currentReplacement = "                enderecoReferencia = ref.text.toString(),\n                observacaoEntrega = obsEntrega.text.toString().trim(),\n                valorCompraCentavos = null,"
+            check(text.contains(currentMarker)) { "Não foi possível salvar a observação da nova entrega." }
+            text = text.replace(currentMarker, currentReplacement)
+
+            val reviewMarker = "        add(card(\"⌖  \" + address, 15f), 6)\n"
+            val reviewReplacement = """        add(card("⌖  " + address, 15f), 6)
+        if (e.observacaoEntrega.isNotBlank()) {
+            add(card("⚠️  Observação da entrega: " + e.observacaoEntrega, 13f, Color.rgb(45, 50, 35)), 8)
+        }
+"""
+            check(text.contains(reviewMarker)) { "Não foi possível mostrar a observação na revisão." }
+            text = text.replace(reviewMarker, reviewReplacement)
+
+            val pendingInfoMarker = "        info.addView(purchase)\n        body.addView(info)"
+            val pendingInfoReplacement = """        info.addView(purchase)
+        if (e.observacaoEntrega.isNotBlank()) {
+            info.addView(txt("⚠️  " + e.observacaoEntrega, 12.5f, Color.rgb(255, 213, 74), true).apply {
+                setPadding(dp(2), dp(8), dp(2), dp(2))
+            })
+        }
+        body.addView(info)"""
+            check(text.contains(pendingInfoMarker)) { "Não foi possível colocar a observação no card de pendentes." }
+            text = text.replace(pendingInfoMarker, pendingInfoReplacement)
+
+            val editFieldMarker = "        val ref = field(\"Endereço / referência *\").apply { setText(e.enderecoReferencia) }\n"
+            val editFieldReplacement = """        val ref = field("Endereço / referência *").apply { setText(e.enderecoReferencia) }
+        val obsEntrega = field("Observação da entrega (opcional)").apply { setText(e.observacaoEntrega) }
+"""
+            check(text.contains(editFieldMarker)) { "Não foi possível localizar a referência da edição." }
+            text = text.replace(editFieldMarker, editFieldReplacement)
+
+            val editAddMarker = "        add(semBloco, 4); add(noAddress, 4); add(ref, 6)"
+            val editAddReplacement = "        add(semBloco, 4); add(noAddress, 4); add(ref, 6); add(obsEntrega, 6)"
+            check(text.contains(editAddMarker)) { "Não foi possível adicionar a observação na edição." }
+            text = text.replace(editAddMarker, editAddReplacement)
+
+            val editCopyMarker = "                enderecoReferencia = ref.text.toString(),\n                valorCompraCentavos = cents,"
+            val editCopyReplacement = "                enderecoReferencia = ref.text.toString(),\n                observacaoEntrega = obsEntrega.text.toString().trim(),\n                valorCompraCentavos = cents,"
+            check(text.contains(editCopyMarker)) { "Não foi possível salvar a observação na edição." }
+            text = text.replace(editCopyMarker, editCopyReplacement)
+        }
+
+        check(text.contains("observacaoEntrega = obsEntrega.text.toString().trim()")) { "Campo de observação da entrega não foi aplicado." }
+        check(text.contains("e.observacaoEntrega.isNotBlank()")) { "Observação da entrega não foi exibida nos pendentes." }
+        check(text.contains("versionCode = 4")) { "VersionCode não atualizado." }
         source.writeText(text)
     }
 }

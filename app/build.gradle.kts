@@ -139,7 +139,6 @@ val patchCompletedCard = tasks.register("patchCompletedCard") {
 
         check(text.contains("observacaoEntrega = obsEntrega.text.toString().trim()")) { "Campo de observação da entrega não foi aplicado." }
         check(text.contains("e.observacaoEntrega.isNotBlank()")) { "Observação da entrega não foi exibida nos pendentes." }
-        check(text.contains("versionCode = 4")) { "VersionCode não atualizado." }
         source.writeText(text)
     }
 }

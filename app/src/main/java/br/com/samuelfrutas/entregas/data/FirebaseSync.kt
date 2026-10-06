@@ -56,6 +56,7 @@ class FirebaseSync(
                         formaPagamento = snap.getString("formaPagamento") ?: e.formaPagamento,
                         caixinhaCentavos = snap.getLong("caixinhaCentavos") ?: e.caixinhaCentavos,
                         observacao = snap.getString("observacao") ?: e.observacao,
+                        observacaoEntrega = snap.getString("observacaoEntrega") ?: e.observacaoEntrega,
                         realizada = snap.getBoolean("realizada") ?: e.realizada,
                         sincronizacao = "SINCRONIZADA"
                     )
@@ -113,6 +114,7 @@ class FirebaseSync(
                             formaPagamento = doc.getString("formaPagamento") ?: "",
                             caixinhaCentavos = doc.getLong("caixinhaCentavos") ?: 0L,
                             observacao = doc.getString("observacao") ?: "",
+                            observacaoEntrega = doc.getString("observacaoEntrega") ?: "",
                             realizada = doc.getBoolean("realizada") ?: false,
                             sincronizacao = "SINCRONIZADA"
                         )
@@ -183,7 +185,8 @@ class FirebaseSync(
                 "enderecoReferencia" to e.enderecoReferencia, "valorCompraCentavos" to e.valorCompraCentavos,
                 "pagamentoInicial" to e.pagamentoInicial, "resultadoPagamento" to e.resultadoPagamento,
                 "formaPagamento" to e.formaPagamento, "caixinhaCentavos" to e.caixinhaCentavos,
-                "observacao" to e.observacao, "realizada" to e.realizada,
+                "observacao" to e.observacao, "observacaoEntrega" to e.observacaoEntrega,
+                "realizada" to e.realizada,
                 "sincronizacao" to "SINCRONIZADA", "atualizadoEm" to FieldValue.serverTimestamp()
             )
             status = "SINCRONIZANDO..." + if (attempt > 0) " TENTATIVA ${attempt + 1}/3" else ""

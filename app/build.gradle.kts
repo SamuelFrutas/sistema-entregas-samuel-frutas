@@ -12,8 +12,8 @@ android {
         applicationId = "br.com.samuelfrutas.entregas"
         minSdk = 24
         targetSdk = 35
-        versionCode = 5
-        versionName = "0.1.4"
+        versionCode = 6
+        versionName = "0.1.5"
     }
 }
 
@@ -80,17 +80,21 @@ val patchCompletedCard = tasks.register("patchCompletedCard") {
             text = text.replace(doneMarker, doneReplacement)
         }
 
-        // Mais respiro no topo das telas internas para afastar o título do status bar.
-        text = text.replace("setPadding(dp(16), dp(8), dp(16), dp(20))", "setPadding(dp(16), dp(30), dp(16), dp(20))")
-        text = text.replace("setPadding(0, dp(4), 0, dp(10))", "setPadding(0, dp(10), 0, dp(10))")
+        // Mais respiro no topo das telas internas para afastar claramente o título do status bar.
+        text = text.replace("setPadding(dp(16), dp(8), dp(16), dp(20))", "setPadding(dp(16), dp(55), dp(16), dp(20))")
+        text = text.replace("setPadding(0, dp(4), 0, dp(10))", "setPadding(0, dp(12), 0, dp(14))")
 
-        if (!text.contains("OBSERVACAO_ENTREGA_NOVA_V1")) {
+        if (!text.contains("OBSERVACAO_ENTREGA_NOVA_V2")) {
             val newFieldMarker = "        val ref = field(\"Endereço / referência *\")\n"
             val newFieldReplacement = """        val ref = field("Endereço / referência *")
-        // OBSERVACAO_ENTREGA_NOVA_V1
+        // OBSERVACAO_ENTREGA_NOVA_V2
         val obsEntrega = field("Observação da entrega (opcional)").apply {
+            setSingleLine(true)
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(-1, dp(54))
             minHeight = dp(54)
-            setPadding(dp(14), dp(4), dp(14), dp(4))
+            minimumHeight = dp(54)
+            setPadding(dp(14), 0, dp(14), 0)
             background = rounded(Color.rgb(8, 34, 49), 14f, Color.rgb(55, 105, 126))
             setOnFocusChangeListener { _, focused ->
                 background = rounded(Color.rgb(8, 34, 49), 14f, if (focused) green else Color.rgb(55, 105, 126))
@@ -101,7 +105,7 @@ val patchCompletedCard = tasks.register("patchCompletedCard") {
             text = text.replace(newFieldMarker, newFieldReplacement)
 
             val addRefMarker = "add(row1); add(semBloco, 2); add(alphaBlock, 0); add(noAddress, 6); add(ref)"
-            val addRefReplacement = "add(row1); add(semBloco, 2); add(alphaBlock, 0); add(noAddress, 6); add(ref, 6); add(obsEntrega, 10)"
+            val addRefReplacement = "add(row1); add(semBloco, 2); add(alphaBlock, 0); add(noAddress, 6); add(ref, 6); add(obsEntrega, 8)"
             check(text.contains(addRefMarker)) { "Não foi possível localizar os campos da nova entrega." }
             text = text.replace(addRefMarker, addRefReplacement)
 

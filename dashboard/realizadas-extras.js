@@ -6,10 +6,6 @@
   function normalize(v){
     return String(v||'').trim().toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ');
   }
-  function sameDelivery(a,b){
-    if(!a||!b) return false;
-    return normalize(formatEndereco(a))===normalize(formatEndereco(b));
-  }
   function decorate(){
     const title=document.getElementById('pageTitle');
     if(!title || normalize(title.textContent)!=='realizadas') return;
@@ -22,14 +18,12 @@
         row.querySelectorAll('.web-observation').forEach(el=>el.remove());
         const strong=row.querySelector('strong');
         const rowAddress=normalize(strong?.textContent||'');
-        const candidates=source.filter(e=>normalize(formatEndereco(e))===rowAddress);
-        const matched=candidates.length===1 ? candidates[0] : (candidates[0] || source[i]);
+        const matched=source.find(e=>normalize(formatEndereco(e))===rowAddress) || source[i];
         const obs=String(matched?.observacao||'').trim();
         if(!obs) return;
         const el=document.createElement('div');
         el.className='web-observation';
-        el.innerHTML='<span class="web-observation-icon">⚠️</span><div><strong>Observação</strong><span class="web-observation-text"></span></div>';
-        el.querySelector('.web-observation-text').textContent=obs;
+        el.textContent='⚠️ Observação: '+obs;
         row.appendChild(el);
       });
     });
@@ -40,11 +34,10 @@
       oldShowDone.apply(this,arguments);
       setTimeout(decorate,0);
       setTimeout(decorate,150);
-      setTimeout(decorate,500);
     };
   }
   const style=document.createElement('style');
-  style.textContent='.history-day .delivery-row{flex-wrap:wrap;align-items:center}.history-day .web-observation{flex:1 1 100%;width:100%;min-width:0;display:flex;align-items:flex-start;gap:10px;margin-top:2px;padding:10px 12px;border-radius:10px;background:rgba(255,196,0,.08);border:1px solid rgba(255,213,74,.22);border-left:4px solid #ffd54a;color:#ffd54a;font-size:13px;font-weight:700;line-height:1.35;box-sizing:border-box}.web-observation-icon{flex:0 0 auto;font-size:16px;line-height:1.35}.web-observation>div{min-width:0}.web-observation strong{display:block;color:#ffd54a;font-size:12px;margin:0 0 2px;letter-spacing:.02em}.web-observation-text{display:block;color:#ffe68a;font-weight:600;white-space:normal;overflow-wrap:anywhere;word-break:normal}@media(max-width:800px){.history-day .web-observation{margin-top:3px;padding:10px 11px;font-size:13px}.web-observation strong{font-size:12px}.web-observation-icon{font-size:15px}}';
+  style.textContent='.web-observation{margin-top:10px;padding:9px 12px;border-radius:10px;background:rgba(255,196,0,.08);border-left:3px solid #ffd54a;color:#ffd54a;font-size:13px;font-weight:700;line-height:1.35;word-break:break-word}';
   document.head.appendChild(style);
   setTimeout(decorate,100);
   setTimeout(decorate,500);

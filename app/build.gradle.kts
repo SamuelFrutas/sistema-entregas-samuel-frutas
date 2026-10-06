@@ -107,7 +107,7 @@ val patchCompletedCard = tasks.register("patchCompletedCard") {
 
             val currentMarker = "                enderecoReferencia = ref.text.toString(),\n                valorCompraCentavos = null,"
             val currentReplacement = "                enderecoReferencia = ref.text.toString(),\n                observacaoEntrega = obsEntrega.text.toString().trim(),\n                valorCompraCentavos = null,"
-            check(text.contains(currentMarker)) { "Não foi possível salvar a observação da nova entrega." }
+            check(text.contains(currentMarker)) { "Não foi possível localizar o salvamento da nova entrega." }
             text = text.replace(currentMarker, currentReplacement)
 
             val reviewMarker = "        add(card(\"⌖  \" + address, 15f), 6)\n"

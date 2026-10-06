@@ -84,13 +84,20 @@ val patchCompletedCard = tasks.register("patchCompletedCard") {
             val newFieldMarker = "        val ref = field(\"Endereço / referência *\")\n"
             val newFieldReplacement = """        val ref = field("Endereço / referência *")
         // OBSERVACAO_ENTREGA_NOVA_V1
-        val obsEntrega = field("Observação da entrega (opcional)")
+        val obsEntrega = field("Observação da entrega (opcional)").apply {
+            minHeight = dp(58)
+            setPadding(dp(14), dp(7), dp(14), dp(7))
+            background = rounded(Color.rgb(8, 34, 49), 14f, Color.rgb(55, 105, 126))
+            setOnFocusChangeListener { _, focused ->
+                background = rounded(Color.rgb(8, 34, 49), 14f, if (focused) green else Color.rgb(55, 105, 126))
+            }
+        }
 """
             check(text.contains(newFieldMarker)) { "Não foi possível localizar o campo de referência da nova entrega." }
             text = text.replace(newFieldMarker, newFieldReplacement)
 
             val addRefMarker = "        add(row1); add(semBloco, 2); add(alphaBlock, 0); add(noAddress, 6); add(ref)"
-            val addRefReplacement = "        add(row1); add(semBloco, 2); add(alphaBlock, 0); add(noAddress, 6); add(ref); add(obsEntrega, 6)"
+            val addRefReplacement = "        add(row1); add(semBloco, 2); add(alphaBlock, 0); add(noAddress, 6); add(ref, 2); add(obsEntrega, 12)"
             check(text.contains(addRefMarker)) { "Não foi possível localizar os campos da nova entrega." }
             text = text.replace(addRefMarker, addRefReplacement)
 

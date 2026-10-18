@@ -46,4 +46,18 @@
   document.head.appendChild(style);
   setTimeout(decorate,100);
   setTimeout(decorate,500);
+
+  // Garante que IDs numéricos e IDs em texto sejam tratados da mesma forma.
+  // Isso corrige o caso em que o documento do Firestore possui id numérico no campo
+  // "id", enquanto o botão HTML envia o valor como string.
+  const originalOpenDelivery=window.openDelivery;
+  if(typeof originalOpenDelivery==='function'){
+    window.openDelivery=function(id){
+      const key=String(id);
+      const docs=typeof currentDocs!=='undefined' ? currentDocs : [];
+      const match=docs.find(e=>String(e?.id)===key);
+      if(!match) return;
+      originalOpenDelivery(match.id);
+    };
+  }
 })();

@@ -21,6 +21,9 @@
         const matched=source.find(e=>normalize(formatEndereco(e))===rowAddress) || source[i];
         const obs=String(matched?.observacao||'').trim();
         if(!obs) return;
+
+        // A observação pertence às informações da entrega.
+        // Colocamos diretamente na coluna esquerda, logo abaixo do status/forma de pagamento.
         const info=row.querySelector(':scope > div:first-child');
         if(!info) return;
         const el=document.createElement('div');
@@ -36,39 +39,6 @@
       oldShowDone.apply(this,arguments);
       setTimeout(decorate,0);
       setTimeout(decorate,150);
-    };
-  }
-  const oldOpenDelivery=window.openDelivery;
-  if(typeof oldOpenDelivery==='function'){
-    window.openDelivery=function(id){
-      oldOpenDelivery(id);
-      setTimeout(function(){
-        const save=document.getElementById('saveDelivery');
-        const e=(typeof currentDocs!=='undefined' ? currentDocs : []).find(x=>String(x.id)===String(id));
-        if(!save || !e) return;
-        save.onclick=async function(){
-          const valor=parseMoney(document.getElementById('editValor')?.value||'');
-          const data={
-            predio:document.getElementById('editPredio')?.value.trim()||'',
-            bloco:document.getElementById('editBloco')?.value.trim()||'',
-            apartamento:document.getElementById('editApto')?.value.trim()||'',
-            semEndereco:!!document.getElementById('editSemEndereco')?.checked,
-            enderecoReferencia:document.getElementById('editReferencia')?.value.trim()||'',
-            valorCompraCentavos:valor,
-            pagamentoInicial:document.getElementById('editPagamento')?.value||'NAO_INFORMADO',
-            atualizadoEm:firebase.firestore.FieldValue.serverTimestamp()
-          };
-          const msg=document.getElementById('editMsg');
-          try{
-            await db.collection('entregas').doc(String(e.id)).update(data);
-            if(msg){msg.textContent='Alterações salvas.';msg.className='save-msg ok';}
-            setTimeout(()=>document.getElementById('deliveryModal')?.remove(),500);
-          }catch(err){
-            if(msg){msg.textContent='Não foi possível salvar: '+(err.code||'erro');msg.className='save-msg error';}
-            console.error('Erro ao salvar entrega:',err);
-          }
-        };
-      },50);
     };
   }
   const style=document.createElement('style');
